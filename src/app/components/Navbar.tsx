@@ -34,12 +34,7 @@ export default function Navbar() {
         </nav>
         
         {/* Optional Desktop Login to match */}
-        <Link 
-          href="/login"
-          className="text-sm uppercase tracking-[0.2em] font-bold text-neutral-400 hover:text-white transition-colors duration-300 ml-4 border-l border-neutral-800 pl-10"
-        >
-          Login
-        </Link>
+       
       </div>
 
       {/* MOBILE TOGGLE BUTTON */}
