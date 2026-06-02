@@ -13,19 +13,53 @@ export default function SuperUIPage() {
 
   const products = {
     lighting: [
-      { name: "Kemi Halo Cascade", price: "$3,850", desc: "Multi-axis interlocking warm-LED ring system." },
-      { name: "Halo Crystal Linear", price: "$2,850", desc: "Multi-axis ceiling luminaire channel grid." },
-      { name: "Cradle Brass Sconce", price: "$720", desc: "Hand-finished patinated wall lighting node." }
+      { 
+        name: "Kemi Halo Cascade", 
+        desc: "Multi-axis interlocking warm-LED ring system.",
+        image: "https://images.unsplash.com/photo-1565814636199-ae8133055c1c?auto=format&fit=crop&w=800&q=80"
+      },
+      { 
+        name: "Halo Crystal Linear", 
+        desc: "Multi-axis ceiling luminaire channel grid.",
+        image: "https://images.unsplash.com/photo-1615873968403-89e068629265?auto=format&fit=crop&w=800&q=80"
+      },
+      { 
+        name: "Cradle Brass Sconce", 
+        desc: "Hand-finished patinated wall lighting node.",
+        image: "https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?auto=format&fit=crop&w=800&q=80"
+      }
     ],
     bathroom: [
-      { name: "Thermostatic Cascade Unit", price: "$3,100", desc: "Digital multi-zone smart flow control cluster." },
-      { name: "Aero Matte Basins", price: "$1,850", desc: "Custom cast-stone wash architecture elements." },
-      { name: "Hydro-Massage Column", price: "$4,200", desc: "Recessed high-pressure environmental mist tower." }
+      { 
+        name: "Thermostatic Cascade Unit", 
+        desc: "Digital multi-zone smart flow control cluster.",
+        image: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=800&q=80"
+      },
+      { 
+        name: "Aero Matte Basins", 
+        desc: "Custom cast-stone wash architecture elements.",
+        image: "https://images.unsplash.com/photo-1595515106878-92b81ac417d8?ixlib=rb-4.1.0&q=85&fm=jpg&crop=entropy&cs=srgb&dl=sanibell-bv-7nLG1HDJW2k-unsplash.jpg"     },
+      { 
+        name: "Hydro-Massage Column", 
+        desc: "Recessed high-pressure environmental mist tower.",
+        image: "https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?auto=format&fit=crop&w=800&q=80"
+      }
     ],
     kitchen: [
-      { name: "Pro-induction Core Matrix", price: "$5,400", desc: "Seamless flush-mount multi-zone cooking deck." },
-      { name: "Linear Extraction Plane", price: "$2,950", desc: "High-volume concealed perimeter ceiling hood." },
-      { name: "Crystalline Cold Vault", price: "$6,800", desc: "Integrated smart-climate preservation system." }
+      { 
+        name: "Pro-induction Core Matrix", 
+        desc: "Seamless flush-mount multi-zone cooking deck.",
+        image: "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=800&q=80"
+      },
+      { 
+        name: "Linear Extraction Plane", 
+        desc: "High-volume concealed perimeter ceiling hood.",
+        image: "https://images.unsplash.com/photo-1593853761096-d0423b545cf9?ixlib=rb-4.1.0&q=85&fm=jpg&crop=entropy&cs=srgb&dl=julia-i3NR1cnwqUo-unsplash.jpg"   },
+      { 
+        name: "Crystalline Cold Vault", 
+        desc: "Integrated smart-climate preservation system.",
+        image: "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=800&q=80"
+      }
     ]
   };
 
@@ -62,9 +96,6 @@ export default function SuperUIPage() {
           {/* ASSET CLUSTER: Kept high to clear the bottom fading barrier */}
           <div className="relative w-full h-full flex items-center justify-center lg:inset-auto lg:w-auto lg:h-auto lg:transform lg:-translate-y-10">
             
-            {/* AMBIENT BACKLIGHT: Dimmed and heavily fanned out into a soft room glow */}
-            {/* <div className="absolute w-[140%] h-[90%] bg-[#d4a373]/15 blur-[160px] rounded-full mix-blend-screen pointer-events-none z-0 animate-pulse duration-[9000ms]" /> */}
-
             {/* Photographic Asset Isolator Container */}
             <div className="relative w-full h-full max-w-[840px] max-h-[480px] flex items-center justify-center p-4 z-10 [mask-image:radial-gradient(ellipse_at_center,white_55%,transparent_70%)] [webkit-mask-image:radial-gradient(ellipse_at_center,white_35%,transparent_70%)]">
               <img 
@@ -118,14 +149,18 @@ export default function SuperUIPage() {
                 className="bg-white border border-neutral-200/80 rounded-2xl p-6 shadow-sm hover:shadow-xl hover:border-[#d4a373]/50 transition-all duration-300 flex flex-col justify-between group"
               >
                 <div className="space-y-4">
-                  <div className="w-full h-48 bg-neutral-50 rounded-xl flex items-center justify-center text-[11px] font-mono text-neutral-400 border border-neutral-200/60 group-hover:bg-neutral-900 group-hover:text-[#d4a373] transition-all duration-300">
-                    // PREVIEW_{activeTab.toUpperCase()}_0{idx + 1}
+                  <div className="w-full h-48 bg-neutral-50 rounded-xl overflow-hidden border border-neutral-200/60 transition-all duration-300">
+                    <img 
+                      src={item.image}
+                      alt={item.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-all duration-500"
+                    />
                   </div>
                   <h4 className="text-lg font-bold text-[#2c2e33] tracking-tight">{item.name}</h4>
                   <p className="text-xs text-neutral-500 font-light leading-relaxed">{item.desc}</p>
                 </div>
-                <div className="flex justify-between items-center pt-6 mt-6 border-t border-neutral-100">
-                  <span className="text-sm font-mono text-[#d4a373] font-bold">{item.price}</span>
+                
+                <div className="flex justify-end items-center pt-6 mt-6 border-t border-neutral-100">
                   <span className="text-[10px] uppercase tracking-wider text-neutral-600 bg-neutral-100 px-4 py-2 rounded-md group-hover:bg-[#d4a373] group-hover:text-white transition-all cursor-pointer">
                     View Blueprint
                   </span>

@@ -2,11 +2,32 @@
 import { useState } from 'react';
 
 const catalogItems = [
-  // REPLACE THE "image" URLS WITH YOUR ACTUAL IMAGE LINKS
-  { id: "L-101", category: "Light", name: "Grand Chandelier", image: "/path/to/image.jpg", desc: "Hand-blown glass with brass finish." },
-  { id: "L-102", category: "Light", name: "Wall Sconce", image: "/path/to/image.jpg", desc: "Minimalist geometric wall lighting." },
-  { id: "K-201", category: "Kitchen", name: "Deep Basin Sink", image: "/path/to/image.jpg", desc: "Stainless steel, noise-dampening." },
-  { id: "B-301", category: "Bathroom", name: "Floating Vanity", image: "/path/to/image.jpg", desc: "Oak finish, soft-close drawers." },
+  { 
+    id: "L-101", 
+    category: "Light", 
+    name: "Grand Chandelier", 
+    image: "https://images.unsplash.com/photo-1565814329452-e1efa11c5b89?auto=format&fit=crop&w=800&q=80", 
+    desc: "Hand-blown glass with brass finish." 
+  },
+  { 
+    id: "L-102", 
+    category: "Light", 
+    name: "Wall Sconce", 
+    image: "https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?auto=format&fit=crop&w=800&q=80", 
+    desc: "Minimalist geometric wall lighting." 
+  },
+  { 
+    id: "K-201", 
+    category: "Kitchen", 
+    name: "Deep Basin Sink", 
+    image: "https://images.unsplash.com/photo-1595515106878-92b81ac417d8?ixlib=rb-4.1.0&q=85&fm=jpg&crop=entropy&cs=srgb&dl=sanibell-bv-7nLG1HDJW2k-unsplash.jpg"  },
+  { 
+    id: "B-301", 
+    category: "Bathroom", 
+    name: "Floating Vanity", 
+    image: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=800&q=80", 
+    desc: "Oak finish, soft-close drawers." 
+  },
 ];
 
 export default function CatalogPage() {
@@ -49,11 +70,12 @@ export default function CatalogPage() {
               className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden hover:shadow-2xl transition-all duration-300"
             >
               {/* IMAGE CONTAINER */}
-              <div className="w-full h-48 bg-slate-100 overflow-hidden">
+              <div className="w-full h-64 bg-slate-100 overflow-hidden relative">
                 <img 
                   src={item.image} 
                   alt={item.name} 
-                  className="w-full h-full object-cover" 
+                  className="w-full h-full object-cover object-center" 
+                  loading="lazy"
                 />
               </div>
 
@@ -61,7 +83,7 @@ export default function CatalogPage() {
               <div className="p-8">
                 <span className="text-[10px] font-mono text-slate-400 mb-2 block">#{item.id}</span>
                 <h3 className="text-xl font-serif mb-2 text-slate-800">{item.name}</h3>
-                <p className="text-slate-500 text-sm leading-relaxed mb-6">{item.desc}</p>
+                <p className="text-slate-500 text-sm leading-relaxed mb-6"> {item.desc} </p>
                 
                 <button className="w-full py-3 border border-slate-200 rounded-lg text-xs uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-colors">
                   View Details
@@ -71,7 +93,6 @@ export default function CatalogPage() {
           ))}
         </div>
       </section>
-
     </main>
   );
 }
