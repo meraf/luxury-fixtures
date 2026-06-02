@@ -42,7 +42,7 @@ export default function SuperUIPage() {
           </div>
           
           <h1 className="text-4xl sm:text-6xl font-serif text-white tracking-tight leading-[1.1]">
-            Kemi Modern
+            Luxury Chandeliers & Fixtures 
           </h1>
           
           <p className="text-xs sm:text-sm text-neutral-400 font-light max-w-md leading-relaxed">
@@ -63,10 +63,10 @@ export default function SuperUIPage() {
           <div className="relative w-full h-full flex items-center justify-center lg:inset-auto lg:w-auto lg:h-auto lg:transform lg:-translate-y-10">
             
             {/* AMBIENT BACKLIGHT: Dimmed and heavily fanned out into a soft room glow */}
-            <div className="absolute w-[140%] h-[90%] bg-[#d4a373]/15 blur-[160px] rounded-full mix-blend-screen pointer-events-none z-0 animate-pulse duration-[9000ms]" />
+            {/* <div className="absolute w-[140%] h-[90%] bg-[#d4a373]/15 blur-[160px] rounded-full mix-blend-screen pointer-events-none z-0 animate-pulse duration-[9000ms]" /> */}
 
             {/* Photographic Asset Isolator Container */}
-            <div className="relative w-full h-full max-w-[640px] max-h-[380px] flex items-center justify-center p-4 z-10 [mask-image:radial-gradient(ellipse_at_center,white_35%,transparent_70%)] [webkit-mask-image:radial-gradient(ellipse_at_center,white_35%,transparent_70%)]">
+            <div className="relative w-full h-full max-w-[840px] max-h-[480px] flex items-center justify-center p-4 z-10 [mask-image:radial-gradient(ellipse_at_center,white_55%,transparent_70%)] [webkit-mask-image:radial-gradient(ellipse_at_center,white_35%,transparent_70%)]">
               <img 
                 src="https://images.unsplash.com/photo-1598155038124-0ae4d7300461?ixlib=rb-4.1.0&q=85&fm=jpg&crop=entropy&cs=srgb&dl=wesley-shen-2h36PYpcUkg-unsplash.jpg&w=2400" 
                 alt="White and Gold Premium Luxury Chandelier"
