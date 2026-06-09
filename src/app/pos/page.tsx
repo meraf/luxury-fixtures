@@ -9,8 +9,6 @@ import {
   Loader2
 } from 'lucide-react';
 
-
-
 // --- TYPES ---
 interface Product {
   id: number;
@@ -44,6 +42,10 @@ export default function POSSystem() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [checkoutStatus, setCheckoutStatus] = useState<'processing' | 'success' | null>(null);
+  
+  // --- SEARCH AND SORT STATES ---
+  const [searchId, setSearchId] = useState('');
+  const [sortOrder, setSortOrder] = useState<'none' | 'asc' | 'desc'>('none');
 
   // --- DATABASE FETCH ---
   useEffect(() => {
@@ -109,6 +111,9 @@ export default function POSSystem() {
 
   const handleCheckout = async () => {
     if (cart.length === 0) return;
+    
+    // Hide the cart modal immediately
+    setIsCartOpen(false);
     setCheckoutStatus('processing');
 
     try {
@@ -167,11 +172,9 @@ export default function POSSystem() {
 
   const ProductCard = ({ product }: { product: Product }) => {
     const [qty, setQty] = useState(1);
-    // Fix: Provide fallback to 0 to prevent undefined to defined transition error
     const [price, setPrice] = useState(product.defaultPrice || 0);
     const [source, setSource] = useState<'SHOP' | 'WAREHOUSE'>('SHOP');
     
-    // Validation: Check if price is invalid
     const isPriceInvalid = price <= 0;
 
     return (
@@ -184,8 +187,17 @@ export default function POSSystem() {
             <span className="text-sm font-medium text-slate-500">Cost: ${product.costPrice.toFixed(2)}</span>
           </div>
 
-          <div className="bg-slate-50 rounded-xl mb-4 h-32 flex items-center justify-center text-6xl shadow-inner border border-slate-100">
-            {product.image}
+          {/* Cloudinary URL Rendering Check */}
+          <div className="bg-slate-50 rounded-xl mb-4 h-32 flex items-center justify-center text-6xl shadow-inner border border-slate-100 overflow-hidden">
+            {product.image && (product.image.startsWith('http') || product.image.includes('cloudinary') || product.image.startsWith('/')) ? (
+              <img 
+                src={product.image} 
+                alt={product.name} 
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              product.image
+            )}
           </div>
 
           <h3 className="font-bold text-slate-900 leading-tight mb-4">{product.name}</h3>
@@ -217,7 +229,6 @@ export default function POSSystem() {
               <label className="block text-xs font-semibold text-slate-600 mb-1">Sell Price ($)</label>
               <input 
                 type="number" step="0.01" value={price} onChange={(e) => setPrice(Number(e.target.value))}
-                // Visual validation: Red border if price is invalid
                 className={`w-full bg-white text-slate-900 font-medium border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ${isPriceInvalid ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-300 focus:ring-slate-800'}`}
               />
             </div>
@@ -227,7 +238,6 @@ export default function POSSystem() {
         <div className="p-4 bg-slate-50 border-t border-slate-200 mt-auto">
           <button 
             onClick={() => addToCart(product, qty, price, source)}
-            // Disabled if out of stock or price is invalid
             disabled={(source === 'SHOP' ? product.shopStock : product.warehouseStock) < 1 || isPriceInvalid}
             className="w-full bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 text-white font-bold py-2.5 rounded-lg text-sm transition-colors flex justify-center items-center"
           >
@@ -340,44 +350,76 @@ export default function POSSystem() {
         </button>
       </div>
 
-{/* Replace your current conditional rendering logic with this */}
-<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-  {/* ... existing Header ... */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {activeTab === 'sell' && (
+           isLoading ? <div>Loading...</div> : (
+             <>
+               {/* Search & Sort UI Controls */}
+               <div className="flex flex-col sm:flex-row gap-4 mb-6 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                 <div className="flex-1">
+                   <input 
+                     type="text"
+                     placeholder="Search by ID..."
+                     value={searchId}
+                     onChange={(e) => setSearchId(e.target.value)}
+                     className="w-full bg-slate-50 text-slate-900 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-slate-800 focus:outline-none placeholder-slate-400 font-medium"
+                   />
+                 </div>
+                 <div className="sm:w-48">
+                   <select
+                     value={sortOrder}
+                     onChange={(e) => setSortOrder(e.target.value as 'none' | 'asc' | 'desc')}
+                     className="w-full bg-slate-50 text-slate-900 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-slate-800 focus:outline-none font-medium"
+                   >
+                     <option value="none">Sort: Default</option>
+                     <option value="asc">Name (A-Z)</option>
+                     <option value="desc">Name (Z-A)</option>
+                   </select>
+                 </div>
+               </div>
 
-  {activeTab === 'sell' && (
-     isLoading ? <div>Loading...</div> : (
-       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-         {products.map(p => <ProductCard key={p.id} product={p} />)}
-       </div>
-     )
-  )}
-  {/* Status Modal - Professional Overlay */}
-{checkoutStatus && (
-  <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-    <div className="bg-white rounded-2xl p-8 w-full max-w-sm text-center shadow-2xl transform transition-all">
-      {checkoutStatus === 'processing' ? (
-        <div className="animate-spin text-slate-900 mx-auto mb-4">
-          <Loader2 className="w-16 h-16" />
-        </div>
-      ) : (
-        <div className="text-green-500 mb-4">
-          <CheckCircle className="w-16 h-16 mx-auto" />
-        </div>
-      )}
-      <h2 className="text-xl font-bold text-slate-900">
-        {checkoutStatus === 'processing' ? 'Processing Sale...' : 'Transaction Successful!'}
-      </h2>
-      <p className="text-slate-500 mt-2">
-        {checkoutStatus === 'processing' ? 'Please wait while we update stock.' : 'All items recorded and stock updated.'}
-      </p>
-    </div>
-  </div>
-)}
-  {activeTab === 'dashboard' && <DashboardView />}
-  {activeTab === 'stock' && <StockView />}
-  {activeTab === 'warehouse' && <WarehouseView />}
-  
-</main>
+               {/* Product Grid with filtering and sorting applied */}
+               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                 {products
+                   .filter(p => searchId === '' || p.id.toString().includes(searchId))
+                   .sort((a, b) => {
+                     if (sortOrder === 'asc') return a.name.localeCompare(b.name);
+                     if (sortOrder === 'desc') return b.name.localeCompare(a.name);
+                     return 0;
+                   })
+                   .map(p => <ProductCard key={p.id} product={p} />)}
+               </div>
+             </>
+           )
+        )}
+
+        {/* Status Modal - Professional Overlay */}
+        {checkoutStatus && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl p-8 w-full max-w-sm text-center shadow-2xl transform transition-all">
+              {checkoutStatus === 'processing' ? (
+                <div className="animate-spin text-slate-900 mx-auto mb-4">
+                  <Loader2 className="w-16 h-16" />
+                </div>
+              ) : (
+                <div className="text-green-500 mb-4">
+                  <CheckCircle className="w-16 h-16 mx-auto" />
+                </div>
+              )}
+              <h2 className="text-xl font-bold text-slate-900">
+                {checkoutStatus === 'processing' ? 'Processing Sale...' : 'Transaction Successful!'}
+              </h2>
+              <p className="text-slate-500 mt-2">
+                {checkoutStatus === 'processing' ? 'Please wait while we update stock.' : 'All items recorded and stock updated.'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'dashboard' && <DashboardView />}
+        {activeTab === 'stock' && <StockView />}
+        {activeTab === 'warehouse' && <WarehouseView />}
+      </main>
       
       <CartModal />
     </div>
