@@ -17,50 +17,54 @@ model Category {
 }
 
 model Product {
-  id             Int       @id @default(autoincrement())
-  sku            String    @unique // Unique stock code (e.g., "FIX-001")
+  id             Int     @id @default(autoincrement())
+  sku            String  @unique // Unique stock code (e.g., "FIX-001")
   name           String
-  description    String?   // The '?' makes this optional
-  image          String    // URL to the image
-  costPrice      Decimal   // Stocking price
-  sellingPrice   Decimal   // Price the customer pays
-  warehouseStock Int       @default(0)
-  shopStock      Int       @default(0)
-  status         String    @default("ACTIVE") // ACTIVE, DRAFT, DISCONTINUED
-  
-  categoryId     Int
-  category       Category  @relation(fields: [categoryId], references: [id])
-  
-  orderItems     OrderItem[]
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  description    String? // The '?' makes this optional
+  image          String // URL to the image
+  costPrice      Decimal // Stocking price
+  sellingPrice   Decimal // Price the customer pays
+  warehouseStock Int     @default(0)
+  shopStock      Int     @default(0)
+  status         String  @default("ACTIVE") // ACTIVE, DRAFT, DISCONTINUED
+
+  categoryId Int
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  orderItems OrderItem[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
 }
 
 model Order {
   id          Int         @id @default(autoincrement())
   totalAmount Decimal
-  status      String      @default("PENDING") // PENDING, PAID, CANCELLED
+  status      String      @default("PENDING")
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   items       OrderItem[]
+  userId      Int
+  user        User        @relation(fields: [userId], references: [id])
 }
 
 model OrderItem {
-  id        Int     @id @default(autoincrement())
-  orderId   Int
-  productId Int
-  quantity  Int
-  price     Decimal // Snapshotted price at time of sale
-  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product   Product @relation(fields: [productId], references: [id])
+  id          Int     @id @default(autoincrement())
+  orderId     Int
+  productId   Int
+  quantity    Int
+  price       Decimal
+  stockSource String
+  order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product @relation(fields: [productId], references: [id])
 }
 
 model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique
-  password  String   // Hashed
-  name      String?  // Optional name
+  password  String // Hashed
+  name      String? // Optional name
   role      String   @default("ADMIN") // ADMIN, STAFF, etc.
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  Order     Order[]
 }

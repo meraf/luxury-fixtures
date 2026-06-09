@@ -109,7 +109,7 @@ export default function POSSystem() {
     try {
       const res = await fetch('/api/checkout', {
         method: 'POST',
-        body: JSON.stringify(cart),
+        body: JSON.stringify({ cart, userId: 1 }), 
         headers: { 'Content-Type': 'application/json' }
       });
 
@@ -122,7 +122,7 @@ export default function POSSystem() {
       setCheckoutStatus('success');
       setTimeout(() => setCheckoutStatus(null), 2000);
     } catch (error) {
-      alert("Transaction failed. Please try again.");
+      alert("Transaction failed.");
       setCheckoutStatus(null);
     }
   };
@@ -132,8 +132,7 @@ export default function POSSystem() {
     <nav className="bg-white shadow-sm sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <span className="text-xl font-bold tracking-tighter text-slate-800 shrink-0 mr-4">LUXE<span className="text-slate-400">POS</span></span>
-          
+     
           <div className="flex items-center space-x-2">
             {[
               { id: 'dashboard', name: 'Dashboard', icon: Home },
@@ -155,9 +154,7 @@ export default function POSSystem() {
             ))}
           </div>
           
-          <button className="p-2 text-slate-500 hover:text-red-600 transition-colors ml-2">
-            <LogOut className="w-5 h-5" />
-          </button>
+
         </div>
       </div>
     </nav>
@@ -165,8 +162,12 @@ export default function POSSystem() {
 
   const ProductCard = ({ product }: { product: Product }) => {
     const [qty, setQty] = useState(1);
-    const [price, setPrice] = useState(product.defaultPrice);
+    // Fix: Provide fallback to 0 to prevent undefined to defined transition error
+    const [price, setPrice] = useState(product.defaultPrice || 0);
     const [source, setSource] = useState<'SHOP' | 'WAREHOUSE'>('SHOP');
+    
+    // Validation: Check if price is invalid
+    const isPriceInvalid = price <= 0;
 
     return (
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden flex flex-col transition-all hover:shadow-md">
@@ -211,7 +212,8 @@ export default function POSSystem() {
               <label className="block text-xs font-semibold text-slate-600 mb-1">Sell Price ($)</label>
               <input 
                 type="number" step="0.01" value={price} onChange={(e) => setPrice(Number(e.target.value))}
-                className="w-full bg-white text-slate-900 font-medium border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-slate-800 focus:outline-none"
+                // Visual validation: Red border if price is invalid
+                className={`w-full bg-white text-slate-900 font-medium border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ${isPriceInvalid ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-300 focus:ring-slate-800'}`}
               />
             </div>
           </div>
@@ -220,10 +222,11 @@ export default function POSSystem() {
         <div className="p-4 bg-slate-50 border-t border-slate-200 mt-auto">
           <button 
             onClick={() => addToCart(product, qty, price, source)}
-            disabled={(source === 'SHOP' ? product.shopStock : product.warehouseStock) < 1}
+            // Disabled if out of stock or price is invalid
+            disabled={(source === 'SHOP' ? product.shopStock : product.warehouseStock) < 1 || isPriceInvalid}
             className="w-full bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 text-white font-bold py-2.5 rounded-lg text-sm transition-colors flex justify-center items-center"
           >
-            {(source === 'SHOP' ? product.shopStock : product.warehouseStock) < 1 ? 'Out of Stock' : 'Add to Cart'}
+            {isPriceInvalid ? 'Invalid Price' : (source === 'SHOP' ? product.shopStock : product.warehouseStock) < 1 ? 'Out of Stock' : 'Add to Cart'}
           </button>
         </div>
       </div>
@@ -318,8 +321,6 @@ export default function POSSystem() {
     <div className="min-h-screen bg-slate-50 font-sans">
       <Navigation />
       
-
-{/* --- FLOATING BOUNCING CART ICON --- */}
       <div className="fixed bottom-6 right-6 z-[60] pointer-events-auto">
         <button 
           onClick={() => setIsCartOpen(true)}
@@ -335,7 +336,6 @@ export default function POSSystem() {
       </div>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
         <div className="mb-8">
           <h1 className="text-2xl font-black text-slate-900 capitalize">{activeTab} Point of Sale</h1>
           <p className="text-slate-600 font-medium text-sm mt-1">
@@ -362,7 +362,6 @@ export default function POSSystem() {
             <p className="text-slate-600 font-medium mt-2">The {activeTab} view will be connected to the Prisma database soon.</p>
           </div>
         )}
-
       </main>
       
       <CartModal />

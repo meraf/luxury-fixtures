@@ -4,27 +4,55 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 export async function POST(req: Request) {
-  const cart = await req.json();
-  
   try {
-    // Use a transaction so all updates happen or none do
-    await prisma.$transaction(
-      cart.map((item: any) => {
-        if (item.stockSource === 'SHOP') {
-          return prisma.product.update({
-            where: { id: item.product.id },
-            data: { shopStock: { decrement: item.quantity } }
-          });
-        } else {
-          return prisma.product.update({
-            where: { id: item.product.id },
-            data: { warehouseStock: { decrement: item.quantity } }
-          });
-        }
-      })
+    const { cart, userId } = await req.json();
+
+    const totalAmount = cart.reduce((sum: number, item: any) => 
+      sum + (Number(item.price) * Number(item.quantity)), 0
     );
-    return NextResponse.json({ success: true });
+
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Verify User exists (Do not try to create them if they don't exist)
+      const user = await tx.user.findUnique({ where: { id: Number(userId) } });
+      
+      if (!user) {
+        throw new Error(`User with ID ${userId} not found.`);
+      }
+
+      // 2. Create the Order
+      const order = await tx.order.create({
+        data: {
+          totalAmount: totalAmount,
+          userId: user.id,
+          items: {
+            create: cart.map((item: any) => ({
+              productId: Number(item.product.id),
+              quantity: Number(item.quantity),
+              price: Number(item.price),
+              stockSource: item.stockSource
+            }))
+          }
+        }
+      });
+
+      // 3. Update stock
+      for (const item of cart) {
+        const field = item.stockSource === 'SHOP' ? 'shopStock' : 'warehouseStock';
+        await tx.product.update({
+          where: { id: Number(item.product.id) },
+          data: { [field]: { decrement: Number(item.quantity) } }
+        });
+      }
+
+      return order;
+    });
+
+    return NextResponse.json({ success: true, orderId: result.id });
   } catch (error) {
-    return NextResponse.json({ error: 'Update failed' }, { status: 500 });
+    console.error("Checkout transaction error:", error);
+    return NextResponse.json(
+      { error: 'Transaction failed', details: error instanceof Error ? error.message : 'Unknown error' }, 
+      { status: 500 }
+    );
   }
 }
