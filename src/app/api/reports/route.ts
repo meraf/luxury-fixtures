@@ -1,25 +1,20 @@
+// src/app/api/reports/route.ts
 import { NextResponse } from 'next/server';
-import { prisma as db} from '../../../lib/prisma'; // Adjust the path as needed
+import { prisma as db } from '../../../lib/prisma';
 
 export async function GET() {
   try {
-    // Example: Aggregate total sales and profit
-    const totals = await db.sale.aggregate({
-      _sum: { total: true, profit: true },
-    });
-
-    // Fetch recent sales with details for the dashboard list
-    const recentSales = await db.sale.findMany({
-      take: 10,
-      orderBy: { createdAt: 'desc' },
+    const sales = await db.sale.findMany({
       include: { 
-        cashier: { select: { name: true } }, 
+        cashier: true, 
         items: { include: { product: true } } 
       },
+      orderBy: { createdAt: 'desc' }
     });
 
-    return NextResponse.json({ totals, recentSales });
+    // MAKE SURE THIS KEY MATCHES WHAT YOU USE IN DashboardView
+    return NextResponse.json({ recentSales: sales });
   } catch (error) {
-    return NextResponse.json({ error: "Failed to fetch" }, { status: 500 });
+    return NextResponse.json({ error: "Failed" }, { status: 500 });
   }
 }

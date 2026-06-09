@@ -7,23 +7,23 @@ export async function POST(req: Request) {
   try {
     const { cart, userId } = await req.json();
 
+    // Calculate totals
     const totalAmount = cart.reduce((sum: number, item: any) => 
       sum + (Number(item.price) * Number(item.quantity)), 0
     );
 
-    const result = await prisma.$transaction(async (tx) => {
-      // 1. Verify User exists (Do not try to create them if they don't exist)
-      const user = await tx.user.findUnique({ where: { id: Number(userId) } });
-      
-      if (!user) {
-        throw new Error(`User with ID ${userId} not found.`);
-      }
+    // Calculate profit (assuming costPrice is available in your product object)
+    const totalProfit = cart.reduce((sum: number, item: any) => 
+      sum + ((Number(item.price) - Number(item.product.costPrice)) * Number(item.quantity)), 0
+    );
 
-      // 2. Create the Order
-      const order = await tx.order.create({
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Create the Sale (for your Reports)
+      const sale = await tx.sale.create({
         data: {
-          totalAmount: totalAmount,
-          userId: user.id,
+          total: totalAmount,
+          profit: totalProfit,
+          cashierId: Number(userId),
           items: {
             create: cart.map((item: any) => ({
               productId: Number(item.product.id),
@@ -35,7 +35,7 @@ export async function POST(req: Request) {
         }
       });
 
-      // 3. Update stock
+      // 2. Update stock levels
       for (const item of cart) {
         const field = item.stockSource === 'SHOP' ? 'shopStock' : 'warehouseStock';
         await tx.product.update({
@@ -44,14 +44,14 @@ export async function POST(req: Request) {
         });
       }
 
-      return order;
+      return sale;
     });
 
-    return NextResponse.json({ success: true, orderId: result.id });
+    return NextResponse.json({ success: true, saleId: result.id });
   } catch (error) {
     console.error("Checkout transaction error:", error);
     return NextResponse.json(
-      { error: 'Transaction failed', details: error instanceof Error ? error.message : 'Unknown error' }, 
+      { error: 'Transaction failed', details: error instanceof Error ? error.message : 'Unknown' }, 
       { status: 500 }
     );
   }

@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 
-// Use interfaces that mirror your Prisma schema
+// Interfaces matching your Prisma schema
 interface Product {
   name: string;
 }
@@ -22,9 +22,7 @@ interface Sale {
   items: SaleItem[];
 }
 
-// 1. Explicitly type the component props
 export default function TransactionList({ sales }: { sales: Sale[] }) {
-  // 2. Explicitly type the state as Sale | null
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
 
   return (
@@ -40,7 +38,6 @@ export default function TransactionList({ sales }: { sales: Sale[] }) {
           </tr>
         </thead>
         <tbody>
-          {/* 3. 'sale' is now typed as Sale */}
           {sales.map((sale: Sale) => (
             <tr 
               key={sale.id} 
@@ -56,13 +53,18 @@ export default function TransactionList({ sales }: { sales: Sale[] }) {
         </tbody>
       </table>
 
-      {/* Detail Modal */}
+      {/* Unified Detail Modal */}
       {selectedSale && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white p-8 rounded-xl w-full max-w-lg">
+          <div className="bg-white p-8 rounded-xl w-full max-w-lg shadow-2xl">
             <h3 className="text-xl font-bold mb-4">Sale Details</h3>
-            <div className="space-y-2 mb-6">
-              {/* 4. 'item' is now typed as SaleItem */}
+            
+            <div className="text-sm text-slate-600 mb-4">
+              <p><strong>Sold by:</strong> {selectedSale.cashier.name}</p>
+              <p><strong>Date:</strong> {new Date(selectedSale.createdAt).toLocaleString()}</p>
+            </div>
+            
+            <div className="space-y-2 mb-6 border-t pt-4">
               {selectedSale.items.map((item: SaleItem) => (
                 <div key={item.id} className="flex justify-between">
                   <span>{item.product.name} (x{item.quantity})</span>
@@ -70,9 +72,15 @@ export default function TransactionList({ sales }: { sales: Sale[] }) {
                 </div>
               ))}
             </div>
+
+            <div className="border-t pt-4 font-bold flex justify-between text-lg">
+              <span>Total: ${selectedSale.total.toFixed(2)}</span>
+              <span className="text-green-600">Profit: ${selectedSale.profit.toFixed(2)}</span>
+            </div>
+
             <button 
               onClick={() => setSelectedSale(null)}
-              className="w-full bg-slate-900 text-white py-2 rounded font-bold"
+              className="mt-6 w-full bg-slate-900 text-white py-2 rounded font-bold hover:bg-slate-800 transition"
             >
               Close
             </button>

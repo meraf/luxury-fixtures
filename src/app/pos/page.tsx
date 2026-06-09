@@ -5,7 +5,8 @@ import WarehouseView from './warehouse/WarehouseView';
 import React, { useState, useEffect } from 'react';
 import { 
   ShoppingCart, LogOut, Home, Store, Layers, Warehouse, 
-  X, Trash2, CheckCircle, AlertCircle 
+  X, Trash2, CheckCircle, AlertCircle, 
+  Loader2
 } from 'lucide-react';
 
 
@@ -350,10 +351,32 @@ export default function POSSystem() {
        </div>
      )
   )}
-  
+  {/* Status Modal - Professional Overlay */}
+{checkoutStatus && (
+  <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+    <div className="bg-white rounded-2xl p-8 w-full max-w-sm text-center shadow-2xl transform transition-all">
+      {checkoutStatus === 'processing' ? (
+        <div className="animate-spin text-slate-900 mx-auto mb-4">
+          <Loader2 className="w-16 h-16" />
+        </div>
+      ) : (
+        <div className="text-green-500 mb-4">
+          <CheckCircle className="w-16 h-16 mx-auto" />
+        </div>
+      )}
+      <h2 className="text-xl font-bold text-slate-900">
+        {checkoutStatus === 'processing' ? 'Processing Sale...' : 'Transaction Successful!'}
+      </h2>
+      <p className="text-slate-500 mt-2">
+        {checkoutStatus === 'processing' ? 'Please wait while we update stock.' : 'All items recorded and stock updated.'}
+      </p>
+    </div>
+  </div>
+)}
   {activeTab === 'dashboard' && <DashboardView />}
   {activeTab === 'stock' && <StockView />}
   {activeTab === 'warehouse' && <WarehouseView />}
+  
 </main>
       
       <CartModal />
