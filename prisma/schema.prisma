@@ -10,30 +10,29 @@ datasource db {
 
 model Category {
   id        Int       @id @default(autoincrement())
-  name      String    @unique // e.g., "Bathroom", "Kitchen"
+  name      String    @unique
   products  Product[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }
 
 model Product {
-  id             Int     @id @default(autoincrement())
-  sku            String  @unique // Unique stock code (e.g., "FIX-001")
+  id             Int         @id @default(autoincrement())
+  sku            String      @unique
   name           String
-  description    String? // The '?' makes this optional
-  image          String // URL to the image
-  costPrice      Decimal // Stocking price
-  sellingPrice   Decimal // Price the customer pays
-  warehouseStock Int     @default(0)
-  shopStock      Int     @default(0)
-  status         String  @default("ACTIVE") // ACTIVE, DRAFT, DISCONTINUED
-
-  categoryId Int
-  category   Category @relation(fields: [categoryId], references: [id])
-
-  orderItems OrderItem[]
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  description    String?
+  image          String
+  costPrice      Decimal
+  sellingPrice   Decimal
+  warehouseStock Int         @default(0)
+  shopStock      Int         @default(0)
+  status         String      @default("ACTIVE")
+  categoryId     Int
+  category       Category    @relation(fields: [categoryId], references: [id])
+  orderItems     OrderItem[]
+  saleItems      SaleItem[]
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 }
 
 model Order {
@@ -58,13 +57,35 @@ model OrderItem {
   product     Product @relation(fields: [productId], references: [id])
 }
 
+model Sale {
+  id        Int        @id @default(autoincrement())
+  total     Float
+  profit    Float
+  createdAt DateTime   @default(now())
+  cashierId Int
+  cashier   User       @relation(fields: [cashierId], references: [id])
+  items     SaleItem[]
+}
+
+model SaleItem {
+  id          Int     @id @default(autoincrement())
+  saleId      Int
+  productId   Int
+  quantity    Int
+  price       Decimal
+  stockSource String
+  sale        Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product     Product @relation(fields: [productId], references: [id])
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique
-  password  String // Hashed
-  name      String? // Optional name
-  role      String   @default("ADMIN") // ADMIN, STAFF, etc.
+  password  String
+  name      String?
+  role      String   @default("ADMIN")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   Order     Order[]
+  Sales     Sale[]
 }

@@ -1,10 +1,14 @@
 'use client';
-
+import DashboardView from './DashboardView';
+import StockView from './stock/StockView';
+import WarehouseView from './warehouse/WarehouseView';
 import React, { useState, useEffect } from 'react';
 import { 
   ShoppingCart, LogOut, Home, Store, Layers, Warehouse, 
   X, Trash2, CheckCircle, AlertCircle 
 } from 'lucide-react';
+
+
 
 // --- TYPES ---
 interface Product {
@@ -335,34 +339,22 @@ export default function POSSystem() {
         </button>
       </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-2xl font-black text-slate-900 capitalize">{activeTab} Point of Sale</h1>
-          <p className="text-slate-600 font-medium text-sm mt-1">
-            {activeTab === 'sell' && 'Select items, set prices, and complete transactions.'}
-          </p>
-        </div>
+{/* Replace your current conditional rendering logic with this */}
+<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  {/* ... existing Header ... */}
 
-        {activeTab === 'sell' && (
-          isLoading ? (
-            <div className="text-center py-20 text-slate-500 font-medium">Loading products from database...</div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {products.map(product => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
-          )
-        )}
-
-        {activeTab !== 'sell' && (
-          <div className="bg-white border-2 border-dashed border-slate-300 rounded-2xl p-12 text-center">
-            <AlertCircle className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-            <h3 className="text-lg font-bold text-slate-900">Module Under Construction</h3>
-            <p className="text-slate-600 font-medium mt-2">The {activeTab} view will be connected to the Prisma database soon.</p>
-          </div>
-        )}
-      </main>
+  {activeTab === 'sell' && (
+     isLoading ? <div>Loading...</div> : (
+       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+         {products.map(p => <ProductCard key={p.id} product={p} />)}
+       </div>
+     )
+  )}
+  
+  {activeTab === 'dashboard' && <DashboardView />}
+  {activeTab === 'stock' && <StockView />}
+  {activeTab === 'warehouse' && <WarehouseView />}
+</main>
       
       <CartModal />
     </div>
