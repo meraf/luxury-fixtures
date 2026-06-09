@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Search, ArrowUpDown, UserPlus, TrendingUp, 
+  Search, ArrowUpDown, FolderPlus, TrendingUp, 
   DollarSign, ShoppingBag, Percent, X, CheckCircle2, Loader2 
 } from 'lucide-react';
 import UserManagement from './dashboard/UserManagement';
@@ -37,11 +37,11 @@ export default function DashboardView() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-  // User Creation Modal States
-  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  // Category Creation Modal States
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
-  const [userForm, setUserForm] = useState({ name: '', email: '', password: '' });
-  const [isSubmittingUser, setIsSubmittingUser] = useState(false);
+  const [categoryForm, setCategoryForm] = useState({ name: '' });
+  const [isSubmittingCategory, setIsSubmittingCategory] = useState(false);
 
   // --- DATA FETCHING ---
   useEffect(() => {
@@ -60,7 +60,7 @@ export default function DashboardView() {
       } catch (error) {
         console.error("Failed to fetch dashboard data:", error);
       } finally {
-        setLoading(false);
+        loading && setLoading(false);
       }
     }
     fetchData();
@@ -122,31 +122,31 @@ export default function DashboardView() {
     return output;
   }, [sales, searchQuery, sortOrder]);
 
-  // --- FORM SUBMISSION HANDLER ---
-  const handleCreateUser = async (e: React.FormEvent) => {
+  // --- CATEGORY FORM SUBMISSION HANDLER ---
+  const handleCreateCategory = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userForm.name || !userForm.email || !userForm.password) return;
+    if (!categoryForm.name) return;
     
-    setIsSubmittingUser(true);
+    setIsSubmittingCategory(true);
     try {
-      const response = await fetch('/api/users', {
+      const response = await fetch('/api/categories', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(userForm),
+        body: JSON.stringify(categoryForm),
       });
 
       if (response.ok) {
-        setIsUserModalOpen(false);
+        setIsCategoryModalOpen(false);
         setIsSuccessModalOpen(true);
-        setUserForm({ name: '', email: '', password: '' });
+        setCategoryForm({ name: '' });
         setTimeout(() => setIsSuccessModalOpen(false), 2200);
       } else {
-        alert("Failed to record internal database entry.");
+        alert("Failed to record category entry.");
       }
     } catch (err) {
-      console.error("User submission pipeline error:", err);
+      console.error("Category submission pipeline error:", err);
     } finally {
-      setIsSubmittingUser(false);
+      setIsSubmittingCategory(false);
     }
   };
 
@@ -183,7 +183,7 @@ export default function DashboardView() {
                   ? 'bg-slate-900 text-white shadow-md scale-102' 
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'}`}
             >
-              {tab}
+              {tab === 'users' ? 'users' : tab}
             </button>
           ))}
         </div>
@@ -206,11 +206,11 @@ export default function DashboardView() {
 
         {subTab === 'users' && (
           <button
-            onClick={() => setIsUserModalOpen(true)}
+            onClick={() => setIsCategoryModalOpen(true)}
             className="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center shadow-lg shadow-slate-200 transition-all active:scale-95"
           >
-            <UserPlus className="w-4 h-4 mr-2" />
-            Add Staff Member
+            <FolderPlus className="w-4 h-4 mr-2" />
+            Add Category
           </button>
         )}
       </div>
@@ -306,66 +306,44 @@ export default function DashboardView() {
         </div>
       )}
 
-      {/* --- SUB-COMPONENT: CREATION POPUP MODAL --- */}
-      {isUserModalOpen && (
+      {/* --- SUB-COMPONENT: CATEGORY CREATION POPUP MODAL --- */}
+      {isCategoryModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={() => setIsUserModalOpen(false)} />
+          <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={() => setIsCategoryModalOpen(false)} />
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md p-6 z-10 transform transition-all animate-scaleUp">
             <div className="flex justify-between items-center mb-5 border-b border-slate-100 pb-3">
               <h3 className="text-base font-black text-slate-900 flex items-center">
-                <UserPlus className="w-5 h-5 mr-2 text-slate-500" /> Register Systems Operator
+                <FolderPlus className="w-5 h-5 mr-2 text-slate-500" /> Add Inventory Category
               </h3>
-              <button onClick={() => setIsUserModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-50">
+              <button onClick={() => setIsCategoryModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-50">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateUser} className="space-y-4">
+            <form onSubmit={handleCreateCategory} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Full Legal Name</label>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Category Label Name</label>
                 <input 
                   type="text" required
-                  value={userForm.name}
-                  onChange={(e) => setUserForm(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="e.g. Alexander Mercer"
-                  className="w-full text-slate-900 text-sm px-3 py-2.5 border border-slate-200 bg-slate-50 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Corporate Email Address</label>
-                <input 
-                  type="email" required
-                  value={userForm.email}
-                  onChange={(e) => setUserForm(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder="name@luxuryfixtures.com"
-                  className="w-full text-slate-900 text-sm px-3 py-2.5 border border-slate-200 bg-slate-50 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Secure Passkey Phrase</label>
-                <input 
-                  type="password" required minLength={6}
-                  value={userForm.password}
-                  onChange={(e) => setUserForm(prev => ({ ...prev, password: e.target.value }))}
-                  placeholder="••••••••••••"
+                  value={categoryForm.name}
+                  onChange={(e) => setCategoryForm({ name: e.target.value })}
+                  placeholder="e.g. Bathroom, Kitchen, Lighting"
                   className="w-full text-slate-900 text-sm px-3 py-2.5 border border-slate-200 bg-slate-50 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all"
                 />
               </div>
 
               <div className="pt-3 flex space-x-3">
                 <button 
-                  type="button" onClick={() => setIsUserModalOpen(false)}
+                  type="button" onClick={() => setIsCategoryModalOpen(false)}
                   className="flex-1 border border-slate-200 text-slate-700 font-bold text-sm py-2.5 rounded-xl hover:bg-slate-50 transition-colors"
                 >
                   Cancel
                 </button>
                 <button 
-                  type="submit" disabled={isSubmittingUser}
+                  type="submit" disabled={isSubmittingCategory}
                   className="flex-1 bg-slate-900 text-white font-bold text-sm py-2.5 rounded-xl hover:bg-slate-800 disabled:opacity-50 transition-all flex items-center justify-center shadow-md"
                 >
-                  {isSubmittingUser ? <Loader2 className="w-4 h-4 animate-spin" /> : "Commit Account"}
+                  {isSubmittingCategory ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Category"}
                 </button>
               </div>
             </form>
@@ -379,7 +357,7 @@ export default function DashboardView() {
           <div className="bg-white rounded-2xl shadow-2xl p-6 text-center max-w-xs w-full border border-slate-100 flex flex-col items-center">
             <CheckCircle2 className="w-12 h-12 text-green-500 animate-bounce mb-3" />
             <h3 className="text-base font-black text-slate-900">Database Synchronized</h3>
-            <p className="text-xs text-slate-400 mt-1">Operator authentication parameters updated successfully.</p>
+            <p className="text-xs text-slate-400 mt-1">New inventory metrics and classifications updated successfully.</p>
           </div>
         </div>
       )}

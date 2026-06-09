@@ -19,6 +19,7 @@ interface Product {
   shopStock: number;
   warehouseStock: number;
   image: string;
+  createdAt?: string;
 }
 
 interface CartItem {
@@ -30,9 +31,9 @@ interface CartItem {
 
 // --- MOCK DATA FALLBACK ---
 const mockProducts: Product[] = [
-  { id: 1, sku: 'FIX-001', name: 'Matte Black Rainfall Shower', costPrice: 120.00, defaultPrice: 299.99, shopStock: 5, warehouseStock: 24, image: '🚿' },
-  { id: 2, sku: 'FIX-002', name: 'Gold Kitchen Faucet', costPrice: 85.50, defaultPrice: 195.00, shopStock: 2, warehouseStock: 10, image: '🚰' },
-  { id: 3, sku: 'FIX-003', name: 'Freestanding Stone Tub', costPrice: 800.00, defaultPrice: 2400.00, shopStock: 0, warehouseStock: 3, image: '🛁' },
+  { id: 1, sku: 'FIX-001', name: 'Matte Black Rainfall Shower', costPrice: 120.00, defaultPrice: 299.99, shopStock: 5, warehouseStock: 24, image: '🚿', createdAt: '2026-01-15T12:00:00.000Z' },
+  { id: 2, sku: 'FIX-002', name: 'Gold Kitchen Faucet', costPrice: 85.50, defaultPrice: 195.00, shopStock: 2, warehouseStock: 10, image: '🚰', createdAt: '2026-02-20T12:00:00.000Z' },
+  { id: 3, sku: 'FIX-003', name: 'Freestanding Stone Tub', costPrice: 800.00, defaultPrice: 2400.00, shopStock: 0, warehouseStock: 3, image: '🛁', createdAt: '2026-03-10T12:00:00.000Z' },
 ];
 
 export default function POSSystem() {
@@ -45,7 +46,7 @@ export default function POSSystem() {
   
   // --- SEARCH AND SORT STATES ---
   const [searchId, setSearchId] = useState('');
-  const [sortOrder, setSortOrder] = useState<'none' | 'asc' | 'desc'>('none');
+  const [sortOrder, setSortOrder] = useState<'none' | 'name_asc' | 'name_desc' | 'id_asc' | 'id_desc' | 'date_new' | 'date_old'>('none');
 
   // --- DATABASE FETCH ---
   useEffect(() => {
@@ -368,12 +369,16 @@ export default function POSSystem() {
                  <div className="sm:w-48">
                    <select
                      value={sortOrder}
-                     onChange={(e) => setSortOrder(e.target.value as 'none' | 'asc' | 'desc')}
+                     onChange={(e) => setSortOrder(e.target.value as 'none' | 'name_asc' | 'name_desc' | 'id_asc' | 'id_desc' | 'date_new' | 'date_old')}
                      className="w-full bg-slate-50 text-slate-900 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-slate-800 focus:outline-none font-medium"
                    >
                      <option value="none">Sort: Default</option>
-                     <option value="asc">Name (A-Z)</option>
-                     <option value="desc">Name (Z-A)</option>
+                     <option value="name_asc">Name (A-Z)</option>
+                     <option value="name_desc">Name (Z-A)</option>
+                     <option value="id_asc">ID (Low-High)</option>
+                     <option value="id_desc">ID (High-Low)</option>
+                     <option value="date_new">Date Added (New-Old)</option>
+                     <option value="date_old">Date Added (Old-New)</option>
                    </select>
                  </div>
                </div>
@@ -383,8 +388,12 @@ export default function POSSystem() {
                  {products
                    .filter(p => searchId === '' || p.id.toString().includes(searchId))
                    .sort((a, b) => {
-                     if (sortOrder === 'asc') return a.name.localeCompare(b.name);
-                     if (sortOrder === 'desc') return b.name.localeCompare(a.name);
+                     if (sortOrder === 'name_asc') return a.name.localeCompare(b.name);
+                     if (sortOrder === 'name_desc') return b.name.localeCompare(a.name);
+                     if (sortOrder === 'id_asc') return a.id - b.id;
+                     if (sortOrder === 'id_desc') return b.id - a.id;
+                     if (sortOrder === 'date_new') return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+                     if (sortOrder === 'date_old') return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
                      return 0;
                    })
                    .map(p => <ProductCard key={p.id} product={p} />)}
