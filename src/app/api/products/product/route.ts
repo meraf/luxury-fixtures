@@ -1,102 +1,80 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { v2 as cloudinary } from 'cloudinary';
 
-const prisma = new PrismaClient();
+// Prevent multiple Prisma instances in development
+const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
+const prisma = globalForPrisma.prisma || new PrismaClient();
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
-// Configure Cloudinary from environment variables
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+// --- GET: Fetch all active products ---
+export async function GET() {
+  try {
+    const products = await prisma.product.findMany({
+      orderBy: { id: 'desc' }
+    });
+    return NextResponse.json(products, { status: 200 });
+  } catch (error) {
+    console.error("GET Product Error:", error);
+    return NextResponse.json({ error: 'Failed to fetch directory data.' }, { status: 500 });
+  }
+}
 
-/**
- * 1. POST: Create a brand new product with an image and initial warehouse stock
- */
+// --- POST: Create new product ---
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { 
-      sku, 
-      name, 
-      description, 
-      image, // Expecting base64 string data stream from frontend
-      costPrice, 
-      sellingPrice, 
-      warehouseStock, 
-      categoryId 
-    } = body;
+    const { sku, name, description, image, costPrice, sellingPrice, warehouseStock, categoryId } = body;
 
-    // Validate required fields
+    // Strict validation
     if (!sku || !name || !image || !costPrice || !sellingPrice || !categoryId) {
-      return NextResponse.json({ error: 'Missing required parameters.' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing required product attributes.' }, { status: 400 });
     }
 
-    // Upload base64 image data string directly to Cloudinary
-    let imageUrl = '';
-    try {
-      const uploadResponse = await cloudinary.uploader.upload(image, {
-        folder: 'luxury_fixtures_inventory',
-      });
-      imageUrl = uploadResponse.secure_url;
-    } catch (uploadError) {
-      console.error("Cloudinary upload failure:", uploadError);
-      return NextResponse.json({ error: 'Failed to upload product image to cloud storage.' }, { status: 500 });
-    }
-
-    // Create item record inside database
+    // Insert into PostgreSQL
     const newProduct = await prisma.product.create({
       data: {
         sku,
         name,
-        description,
-        image: imageUrl,
+        description: description || null,
+        image, // This is the final Cloudinary URL string
         costPrice: Number(costPrice),
         sellingPrice: Number(sellingPrice),
         warehouseStock: Number(warehouseStock) || 0,
-        shopStock: 0, // Fresh items default to warehouse first
+        shopStock: 0,
+        status: "ACTIVE",
         categoryId: Number(categoryId),
-        status: "ACTIVE"
       },
     });
 
     return NextResponse.json({ success: true, product: newProduct }, { status: 201 });
   } catch (error: any) {
-    console.error("Product creation error pipeline:", error);
-    // Gracefully catch unique constraint fails on SKUs
+    console.error("POST Product Error:", error);
+    // Handle Prisma Unique Constraint Error for SKU
     if (error.code === 'P2002') {
-      return NextResponse.json({ error: 'A product with this unique SKU already exists.' }, { status: 400 });
+      return NextResponse.json({ error: `The SKU "${error.meta?.target}" already exists.` }, { status: 400 });
     }
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
-/**
- * 2. PATCH: Restock an existing product's warehouse inventory level
- */
+// --- PATCH: Restock existing product ---
 export async function PATCH(req: Request) {
   try {
     const body = await req.json();
     const { productId, quantityToAdd } = body;
 
-    if (!productId || undefined === quantityToAdd || Number(quantityToAdd) <= 0) {
-      return NextResponse.json({ error: 'Valid product ID and positive restock quantity are required.' }, { status: 400 });
+    if (!productId || !quantityToAdd) {
+      return NextResponse.json({ error: 'Missing restock parameters.' }, { status: 400 });
     }
 
-    // Safely increment the selected product warehouse record instance counter
     const updatedProduct = await prisma.product.update({
       where: { id: Number(productId) },
-      data: {
-        warehouseStock: {
-          increment: Number(quantityToAdd)
-        }
-      }
+      data: { warehouseStock: { increment: Number(quantityToAdd) } }
     });
 
-    return NextResponse.json({ success: true, updatedStock: updatedProduct.warehouseStock });
-  } catch (error: any) {
-    console.error("Warehouse restock adjustment error:", error);
-    return NextResponse.json({ error: 'Failed to update warehouse storage allocations.' }, { status: 500 });
+    return NextResponse.json({ success: true, updatedStock: updatedProduct.warehouseStock }, { status: 200 });
+  } catch (error) {
+    console.error("PATCH Product Error:", error);
+    return NextResponse.json({ error: 'Failed to update warehouse storage allocation.' }, { status: 500 });
   }
 }
