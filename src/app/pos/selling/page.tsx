@@ -132,8 +132,9 @@ export default function POSSystem() {
     <nav className="bg-white shadow-sm sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-
-          <div className="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-hide">
+          <span className="text-xl font-bold tracking-tighter text-slate-800 shrink-0 mr-4">LUXE<span className="text-slate-400">POS</span></span>
+          
+          <div className="flex items-center space-x-2">
             {[
               { id: 'dashboard', name: 'Dashboard', icon: Home },
               { id: 'sell', name: 'Sell', icon: Store },
@@ -143,27 +144,19 @@ export default function POSSystem() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center px-4 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap
+                className={`flex items-center px-3 py-2 rounded-full text-sm font-bold transition-all
                   ${activeTab === tab.id 
                     ? 'bg-slate-900 text-white shadow-lg' 
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
               >
-                <tab.icon className="w-4 h-4 mr-2" />
-                {tab.name}
+                <tab.icon className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">{tab.name}</span>
               </button>
             ))}
           </div>
           
-          <button 
-            onClick={() => setIsCartOpen(true)} 
-            className="relative p-2 ml-4 text-slate-600 hover:text-slate-900 transition-colors bg-slate-100 rounded-full shrink-0"
-          >
-            <ShoppingCart className="w-5 h-5" />
-            {cart.length > 0 && (
-              <span className="absolute top-0 right-0 -mt-1 -mr-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-                {cart.length}
-              </span>
-            )}
+          <button className="p-2 text-slate-500 hover:text-red-600 transition-colors ml-2">
+            <LogOut className="w-5 h-5" />
           </button>
         </div>
       </div>
@@ -325,7 +318,23 @@ export default function POSSystem() {
     <div className="min-h-screen bg-slate-50 font-sans">
       <Navigation />
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 sm:pb-8">
+
+{/* --- FLOATING BOUNCING CART ICON --- */}
+      <div className="fixed bottom-6 right-6 z-[60] pointer-events-auto">
+        <button 
+          onClick={() => setIsCartOpen(true)}
+          className="p-4 bg-slate-900 text-white rounded-full shadow-[0_10px_25px_-5px_rgba(0,0,0,0.3)] animate-bounce hover:animate-none transition-all hover:scale-110 active:scale-95 border-2 border-white"
+        >
+          <ShoppingCart className="w-6 h-6" />
+          {cart.length > 0 && (
+            <span className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white border-2 border-white shadow-sm">
+              {cart.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
         <div className="mb-8">
           <h1 className="text-2xl font-black text-slate-900 capitalize">{activeTab} Point of Sale</h1>
