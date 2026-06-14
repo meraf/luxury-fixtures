@@ -4,42 +4,53 @@ import { prisma } from "../lib/prisma";
 import { revalidatePath } from "next/cache";
 
 // 1. STOCKING: Add a new product
-export async function addProduct(data: { name: string; price: number; stock: number }) {
+export async function addProduct(data: { 
+  name: string; 
+  costPrice: number; 
+  sellingPrice: number; 
+  warehouseStock: number; 
+  sku: string; 
+  image: string; 
+  categoryId: number 
+}) {
   await prisma.product.create({
     data: {
       name: data.name,
-      price: data.price,
-      stock: data.stock,
+      sku: data.sku,
+      image: data.image,
+      costPrice: data.costPrice,
+      sellingPrice: data.sellingPrice,
+      warehouseStock: data.warehouseStock,
+      categoryId: data.categoryId,
     },
   });
   revalidatePath("/stocking");
 }
 
 // 2. SELLING: Process a transaction
-// This updates stock AND records the order in one transaction
-export async function processSale(items: { productId: string; quantity: number; price: number }[]) {
+export async function processSale(items: { productId: number; quantity: number; price: number }[]) {
   const totalAmount = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
 
   return await prisma.$transaction(async (tx) => {
-    // Create the order
     const order = await tx.order.create({
       data: {
         totalAmount,
+        userId: 1, // Ensure you have a valid user ID here
         items: {
           create: items.map(item => ({
             productId: item.productId,
             quantity: item.quantity,
             price: item.price,
+            stockSource: "warehouse", // Required by your schema
           })),
         },
       },
     });
 
-    // Reduce stock for each item
     for (const item of items) {
       await tx.product.update({
         where: { id: item.productId },
-        data: { stock: { decrement: item.quantity } },
+        data: { warehouseStock: { decrement: item.quantity } },
       });
     }
 
@@ -57,7 +68,7 @@ export async function getDashboardStats() {
   
   const activeOrders = await prisma.order.count();
   const lowStockItems = await prisma.product.count({
-    where: { stock: { lt: 5 } }
+    where: { warehouseStock: { lt: 5 } }
   });
 
   return {
