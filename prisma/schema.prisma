@@ -58,13 +58,12 @@ model OrderItem {
 }
 
 model Sale {
-  id        Int        @id @default(autoincrement())
-  total     Float
-  profit    Float
-  createdAt DateTime   @default(now())
-  cashierId Int
-  cashier   User       @relation(fields: [cashierId], references: [id])
-  items     SaleItem[]
+  id          Int        @id @default(autoincrement())
+  total       Float
+  profit      Float
+  createdAt   DateTime   @default(now())
+  cashierName String     // Fixed: Now storing the string name instead of an ID relation
+  items       SaleItem[]
 }
 
 model SaleItem {
@@ -87,5 +86,5 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   Order     Order[]
-  Sales     Sale[]
+  // Fixed: Removed the Sales[] array since the Sale model no longer strictly links to the User ID
 }

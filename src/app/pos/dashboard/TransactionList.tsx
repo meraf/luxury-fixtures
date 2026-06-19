@@ -16,7 +16,7 @@ interface SaleItem {
 interface Sale {
   id: number;
   createdAt: string | Date;
-  cashier: { name: string };
+  cashierName: string; // FIX 1: Updated TypeScript definition to match the new backend payload
   total: number;
   profit: number;
   items: SaleItem[];
@@ -45,7 +45,7 @@ export default function TransactionList({ sales }: { sales: Sale[] }) {
               className="border-b hover:bg-slate-50 cursor-pointer transition"
             >
               <td className="py-4">{new Date(sale.createdAt).toLocaleDateString()}</td>
-              <td className="py-4">{sale.cashier.name}</td>
+              <td className="py-4">{sale.cashierName || 'Unknown'}</td>
               <td className="py-4 font-bold">${sale.total.toFixed(2)}</td>
               <td className="py-4 text-green-600 font-bold">${sale.profit.toFixed(2)}</td>
             </tr>
@@ -60,7 +60,8 @@ export default function TransactionList({ sales }: { sales: Sale[] }) {
             <h3 className="text-xl font-bold mb-4">Sale Details</h3>
             
             <div className="text-sm text-slate-600 mb-4">
-              <p><strong>Sold by:</strong> {selectedSale.cashier.name}</p>
+              {/* FIX 2: Read directly from cashierName string instead of cashier.name */}
+              <p><strong>Sold by:</strong> {selectedSale.cashierName || 'Unknown'}</p>
               <p><strong>Date:</strong> {new Date(selectedSale.createdAt).toLocaleString()}</p>
             </div>
             

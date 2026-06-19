@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma as db} from '../../../lib/prisma';
+import { prisma as db } from '../../../lib/prisma';
 
 export async function GET() {
   try {
@@ -18,6 +18,7 @@ export async function GET() {
 
     return NextResponse.json(chartData);
   } catch (error) {
+    console.error("Chart data error:", error);
     return NextResponse.json({ error: "Failed to load report" }, { status: 500 });
   }
 }

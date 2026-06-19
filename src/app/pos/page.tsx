@@ -6,8 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   ShoppingCart, LogOut, Home, Store, Layers, Warehouse, 
-  X, Trash2, CheckCircle, AlertCircle, 
-  Loader2
+  X, Trash2, CheckCircle, Loader2
 } from 'lucide-react';
 
 // --- TYPES ---
@@ -31,8 +30,7 @@ interface CartItem {
 }
 
 // --- MOCK DATA FALLBACK ---
-const mockProducts: Product[] = [
-];
+const mockProducts: Product[] = [];
 
 export default function POSSystem() {
   const router = useRouter();
@@ -136,18 +134,34 @@ export default function POSSystem() {
   const handleCheckout = async () => {
     if (cart.length === 0) return;
     
-    // FIX 1: Safely fallback to user ID 1 if the localStorage object is missing an ID. 
-    // This perfectly mimics your old code while still supporting new dynamic IDs.
-    const safeUserId = currentUser?.id ? Number(currentUser.id) : 1;
+    // --- IMPROVED AUTH CHECK ---
+    // 1. Try React State first
+    let userName = currentUser?.name;
+
+    // 2. Failsafe: If state is null, check localStorage directly
+    if (!userName) {
+        const raw = localStorage.getItem('luxury_user');
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            userName = parsed?.name;
+        }
+    }
+
+    // 3. Validation
+    if (!userName || userName.trim() === '') {
+      console.error("Checkout failed: No valid user logged in.");
+      alert("Session error: Please refresh the page and try logging in again.");
+      setCheckoutStatus(null);
+      return; 
+    }
     
-    // Hide the cart modal immediately
     setIsCartOpen(false);
     setCheckoutStatus('processing');
 
     try {
       const res = await fetch('/api/checkout', {
         method: 'POST',
-        body: JSON.stringify({ cart, userId: safeUserId }), 
+        body: JSON.stringify({ cart, cashierName: userName }), 
         headers: { 'Content-Type': 'application/json' }
       });
 
@@ -176,7 +190,6 @@ export default function POSSystem() {
     <nav className="bg-white shadow-sm sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-       
           <div className="flex items-center space-x-1 sm:space-x-2 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
             {[
               { id: 'dashboard', name: 'Dashboard', icon: Home },
@@ -211,7 +224,6 @@ export default function POSSystem() {
               <LogOut className="w-5 h-5" />
             </button>
           </div>
-
         </div>
       </div>
     </nav>
@@ -295,7 +307,6 @@ export default function POSSystem() {
   };
 
   const CartModal = () => {
-    // FIX 2: Completely unmounts the cart UI when it's closed. No more CSS bleeding or invisible hitboxes.
     if (!isCartOpen) return null;
 
     return (
@@ -405,7 +416,6 @@ export default function POSSystem() {
              <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
            </div> : (
              <>
-               {/* Search & Sort UI Controls */}
                <div className="flex flex-col sm:flex-row gap-4 mb-6 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
                  <div className="flex-1">
                    <input 
@@ -433,7 +443,6 @@ export default function POSSystem() {
                  </div>
                </div>
 
-               {/* Product Grid */}
                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                  {products
                    .filter(p => searchId === '' || p.id.toString().includes(searchId))
@@ -452,7 +461,6 @@ export default function POSSystem() {
            )
         )}
 
-        {/* Status Modal */}
         {checkoutStatus && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
             <div className="bg-white rounded-2xl p-8 w-full max-w-sm text-center shadow-2xl transform transition-all">
