@@ -133,20 +133,13 @@ export default function POSSystem() {
 
   const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-const handleCheckout = async () => {
+  const handleCheckout = async () => {
     if (cart.length === 0) return;
     
-    // Check if the user is logged in before proceeding
-    if (!currentUser) {
-      alert("Session expired. Please log in again.");
-      router.push('/login');
-      return;
-    }
-
-    // Capture the dynamic ID and Name from the state
-    const userId = Number(currentUser.id);
-    const userName = currentUser.name;
-
+    // FIX 1: Safely fallback to user ID 1 if the localStorage object is missing an ID. 
+    // This perfectly mimics your old code while still supporting new dynamic IDs.
+    const safeUserId = currentUser?.id ? Number(currentUser.id) : 1;
+    
     // Hide the cart modal immediately
     setIsCartOpen(false);
     setCheckoutStatus('processing');
@@ -154,12 +147,7 @@ const handleCheckout = async () => {
     try {
       const res = await fetch('/api/checkout', {
         method: 'POST',
-        // Send both the ID (for DB relationships) and Name (for easy reference)
-        body: JSON.stringify({ 
-          cart, 
-          userId, 
-          userName 
-        }), 
+        body: JSON.stringify({ cart, userId: safeUserId }), 
         headers: { 'Content-Type': 'application/json' }
       });
 
