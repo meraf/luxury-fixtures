@@ -1,6 +1,6 @@
 'use client';
 import { AuthProvider } from '@/components/context/AuthContext';
-import LoginContent from './LoginContent'; // This will now work correctly
+import LoginContent from './LoginContent';
 
 export default function LuxuryAdminLogin() {
   return (

@@ -1,10 +1,9 @@
 'use client';
 import POSSidebar from "../components/POSSidebar";
 import { useAuth } from "@//components/context/AuthContext";
-// ... other imports
 
 export default function POSLayout({ children }: { children: React.ReactNode }) {
-  // Remove <html> and <body> from here
+
   return (
     <div className="flex bg-[#121419] min-h-screen text-white">
 

@@ -14,7 +14,6 @@ export default function LoginContent() {
     e.preventDefault();
     setLoading(true);
     
-    // Logic to verify against your database via your API route
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
@@ -24,13 +23,21 @@ export default function LoginContent() {
 
       if (response.ok) {
         const data = await response.json();
+        
+        // 1. Commit user payload to global React context state
         login(data.user);
-        router.push('/pos');
+        
+        // 2. Save user payload to localStorage so it survives page reloads/routing transitions
+        localStorage.setItem('luxury_user', JSON.stringify(data.user));
+        
+        // 3. Move forward to your check page
+        router.push('/authenticator');
       } else {
         alert("Invalid credentials");
       }
     } catch (error) {
       console.error("Login error:", error);
+      alert("An unexpected authentication error occurred.");
     } finally {
       setLoading(false);
     }

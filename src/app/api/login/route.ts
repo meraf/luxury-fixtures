@@ -1,23 +1,42 @@
-import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { NextResponse } from "next/server";
+import { prisma } from "../../../lib/prisma";
 
-export async function POST(req: Request) {
-  const { username, password } = await req.json();
+export async function POST(request: Request) {
+  try {
+    const { email, password } = await request.json();
 
-  // 1. Add your logic to verify credentials from database here
-  if (username === 'admin' && password === 'password123') {
-    
-    // 2. This creates the 'auth_token' cookie in the browser
-    (await cookies()).set('auth_token', '27', {
-      httpOnly: true, // Crucial for security: prevents JS from accessing the cookie
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24, // 24 hours
+    const user = await prisma.user.findUnique({
+      where: { email },
     });
 
-    return NextResponse.json({ message: 'Login successful' });
-  }
+    if (!user || user.password !== password) {
+      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+    }
 
-  return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+    const response = NextResponse.json(
+      { 
+        success: true, 
+        user: { id: user.id, email: user.email, name: user.name, role: user.role } 
+      },
+      { status: 200 }
+    );
+
+    // Detect if running on localhost to prevent cookie rejection over HTTP
+    const host = request.headers.get("host") || "";
+    const isLocalhost = host.includes("localhost") || host.includes("127.0.0.1");
+    const isProd = process.env.NODE_ENV === "production";
+
+    // Set cookie precisely matching what middleware expects
+    response.cookies.set("token", "authenticated-session-active", {
+      httpOnly: true,
+      secure: isProd && !isLocalhost, // Only force secure HTTPS if we are NOT on localhost
+      sameSite: "lax",               // Changed to "lax" to ensure it persists during hard context switches
+      maxAge: 60 * 60 * 24,          // 1 day session expiration
+      path: "/",                     // Accessible globally across all app structures
+    });
+
+    return response;
+  } catch (error) {
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
 }

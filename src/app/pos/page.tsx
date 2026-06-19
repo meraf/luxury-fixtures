@@ -3,6 +3,7 @@ import DashboardView from './DashboardView';
 import StockView from './stock/StockView';
 import WarehouseView from './warehouse/WarehouseView';
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   ShoppingCart, LogOut, Home, Store, Layers, Warehouse, 
   X, Trash2, CheckCircle, AlertCircle, 
@@ -31,12 +32,12 @@ interface CartItem {
 
 // --- MOCK DATA FALLBACK ---
 const mockProducts: Product[] = [
-  { id: 1, sku: 'FIX-001', name: 'Matte Black Rainfall Shower', costPrice: 120.00, defaultPrice: 299.99, shopStock: 5, warehouseStock: 24, image: '🚿', createdAt: '2026-01-15T12:00:00.000Z' },
-  { id: 2, sku: 'FIX-002', name: 'Gold Kitchen Faucet', costPrice: 85.50, defaultPrice: 195.00, shopStock: 2, warehouseStock: 10, image: '🚰', createdAt: '2026-02-20T12:00:00.000Z' },
-  { id: 3, sku: 'FIX-003', name: 'Freestanding Stone Tub', costPrice: 800.00, defaultPrice: 2400.00, shopStock: 0, warehouseStock: 3, image: '🛁', createdAt: '2026-03-10T12:00:00.000Z' },
 ];
 
 export default function POSSystem() {
+  const router = useRouter();
+  const [currentUser, setCurrentUser] = useState<{ id?: number; name: string } | null>(null);
+
   const [activeTab, setActiveTab] = useState('sell');
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -47,6 +48,28 @@ export default function POSSystem() {
   // --- SEARCH AND SORT STATES ---
   const [searchId, setSearchId] = useState('');
   const [sortOrder, setSortOrder] = useState<'none' | 'name_asc' | 'name_desc' | 'id_asc' | 'id_desc' | 'date_new' | 'date_old'>('none');
+
+  // --- AUTHENTICATION CHECK ---
+  useEffect(() => {
+    const rawUserData = localStorage.getItem('luxury_user');
+    if (!rawUserData) {
+      router.push('/login');
+      return;
+    }
+    
+    try {
+      const user = JSON.parse(rawUserData);
+      if (!user || !user.name || user.name.trim() === "") {
+        localStorage.removeItem('luxury_user');
+        router.push('/login');
+      } else {
+        setCurrentUser(user);
+      }
+    } catch (error) {
+      localStorage.removeItem('luxury_user');
+      router.push('/login');
+    }
+  }, [router]);
 
   // --- DATABASE FETCH ---
   useEffect(() => {
@@ -110,9 +133,20 @@ export default function POSSystem() {
 
   const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-  const handleCheckout = async () => {
+const handleCheckout = async () => {
     if (cart.length === 0) return;
     
+    // Check if the user is logged in before proceeding
+    if (!currentUser) {
+      alert("Session expired. Please log in again.");
+      router.push('/login');
+      return;
+    }
+
+    // Capture the dynamic ID and Name from the state
+    const userId = Number(currentUser.id);
+    const userName = currentUser.name;
+
     // Hide the cart modal immediately
     setIsCartOpen(false);
     setCheckoutStatus('processing');
@@ -120,7 +154,12 @@ export default function POSSystem() {
     try {
       const res = await fetch('/api/checkout', {
         method: 'POST',
-        body: JSON.stringify({ cart, userId: 1 }), 
+        // Send both the ID (for DB relationships) and Name (for easy reference)
+        body: JSON.stringify({ 
+          cart, 
+          userId, 
+          userName 
+        }), 
         headers: { 'Content-Type': 'application/json' }
       });
 
@@ -133,9 +172,15 @@ export default function POSSystem() {
       setCheckoutStatus('success');
       setTimeout(() => setCheckoutStatus(null), 2000);
     } catch (error) {
+      console.error(error);
       alert("Transaction failed.");
       setCheckoutStatus(null);
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('luxury_user');
+    router.push('/login');
   };
 
   // --- UI COMPONENTS ---
@@ -143,8 +188,8 @@ export default function POSSystem() {
     <nav className="bg-white shadow-sm sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-     
-          <div className="flex items-center space-x-2">
+       
+          <div className="flex items-center space-x-1 sm:space-x-2 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
             {[
               { id: 'dashboard', name: 'Dashboard', icon: Home },
               { id: 'sell', name: 'Sell', icon: Store },
@@ -154,7 +199,7 @@ export default function POSSystem() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center px-3 py-2 rounded-full text-sm font-bold transition-all
+                className={`flex items-center whitespace-nowrap px-3 py-2 rounded-full text-sm font-bold transition-all
                   ${activeTab === tab.id 
                     ? 'bg-slate-900 text-white shadow-lg' 
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
@@ -165,6 +210,19 @@ export default function POSSystem() {
             ))}
           </div>
           
+          <div className="flex items-center space-x-3 ml-4">
+            <div className="hidden md:flex items-center bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-full text-xs font-bold text-slate-700">
+              <span className="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></span>
+              {currentUser?.name || "Loading..."}
+            </div>
+            <button 
+              onClick={handleLogout}
+              className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors flex items-center"
+              title="Sign Out"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
+          </div>
 
         </div>
       </div>
@@ -188,7 +246,6 @@ export default function POSSystem() {
             <span className="text-sm font-medium text-slate-500">Cost: ${product.costPrice.toFixed(2)}</span>
           </div>
 
-          {/* Cloudinary URL Rendering Check */}
           <div className="bg-slate-50 rounded-xl mb-4 h-32 flex items-center justify-center text-6xl shadow-inner border border-slate-100 overflow-hidden">
             {product.image && (product.image.startsWith('http') || product.image.includes('cloudinary') || product.image.startsWith('/')) ? (
               <img 
@@ -249,95 +306,97 @@ export default function POSSystem() {
     );
   };
 
-  const CartModal = () => (
-    <>
-      {isCartOpen && (
+  const CartModal = () => {
+    // FIX 2: Completely unmounts the cart UI when it's closed. No more CSS bleeding or invisible hitboxes.
+    if (!isCartOpen) return null;
+
+    return (
+      <>
         <div 
-          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 transition-opacity"
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 transition-opacity"
           onClick={() => setIsCartOpen(false)}
         />
-      )}
-      
-      <div className={`fixed inset-y-4 right-4 w-[calc(100%-2rem)] sm:w-[400px] bg-white shadow-2xl z-50 rounded-2xl overflow-hidden border border-slate-200 transform transition-transform duration-300 ease-in-out flex flex-col ${isCartOpen ? 'translate-x-0' : 'translate-x-[120%]'}`}>
         
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-white">
-          <h2 className="text-lg font-bold text-slate-900 flex items-center">
-            <ShoppingCart className="w-5 h-5 mr-2 text-slate-600" />
-            Current Sale
-          </h2>
-          <button onClick={() => setIsCartOpen(false)} className="p-2 hover:bg-slate-100 rounded-full text-slate-600 transition-colors">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+        <div className="fixed inset-0 sm:inset-y-4 sm:right-4 w-full sm:w-[420px] bg-white shadow-2xl z-50 sm:rounded-2xl rounded-none overflow-hidden border border-slate-200 flex flex-col">
+          <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-white pt-8 sm:pt-4">
+            <h2 className="text-lg font-bold text-slate-900 flex items-center">
+              <ShoppingCart className="w-5 h-5 mr-2 text-slate-600" />
+              Current Sale
+            </h2>
+            <button onClick={() => setIsCartOpen(false)} className="p-2 hover:bg-slate-100 rounded-full text-slate-600 transition-colors">
+              <X className="w-6 h-6" />
+            </button>
+          </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50">
-          {cart.length === 0 ? (
-            <div className="text-center text-slate-400 mt-10">
-              <ShoppingCart className="w-12 h-12 mx-auto mb-3 opacity-20" />
-              <p className="font-medium">The cart is currently empty.</p>
-            </div>
-          ) : (
-            cart.map((item, idx) => {
-              const price = Number(item.price) || 0;
-              const quantity = Number(item.quantity) || 0;
-              const itemTotal = price * quantity;
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-slate-50">
+            {cart.length === 0 ? (
+              <div className="text-center text-slate-400 mt-10">
+                <ShoppingCart className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                <p className="font-medium">The cart is currently empty.</p>
+              </div>
+            ) : (
+              cart.map((item, idx) => {
+                const price = Number(item.price) || 0;
+                const quantity = Number(item.quantity) || 0;
+                const itemTotal = price * quantity;
 
-              return (
-                <div key={idx} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center group">
-                  <div className="flex-1">
-                    <h4 className="text-sm font-bold text-slate-900">{item.product.name}</h4>
-                    <div className="text-xs text-slate-600 mt-1 flex items-center">
-                      <span className="font-bold text-slate-800">{quantity}x</span> @ ${price.toFixed(2)}
-                      <span className="mx-2 text-slate-300">•</span>
-                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${item.stockSource === 'SHOP' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
-                        {item.stockSource}
-                      </span>
+                return (
+                  <div key={idx} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center group">
+                    <div className="flex-1 pr-2">
+                      <h4 className="text-sm font-bold text-slate-900 leading-tight">{item.product.name}</h4>
+                      <div className="text-xs text-slate-600 mt-2 flex items-center flex-wrap gap-2">
+                        <span className="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">{quantity}x</span> 
+                        <span>@ ${price.toFixed(2)}</span>
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${item.stockSource === 'SHOP' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
+                          {item.stockSource}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right flex flex-col items-end">
+                      <div className="text-sm font-black text-slate-900 mb-2">${itemTotal.toFixed(2)}</div>
+                      <button onClick={() => removeFromCart(idx)} className="text-red-500 hover:text-red-700 bg-red-50 p-1.5 rounded-lg transition-colors">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
-                  <div className="text-right ml-4">
-                    <div className="text-sm font-black text-slate-900 mb-1">${itemTotal.toFixed(2)}</div>
-                    <button onClick={() => removeFromCart(idx)} className="text-red-500 hover:text-red-700 p-1 transition-colors">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
+                );
+              })
+            )}
+          </div>
 
-        <div className="p-6 bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-          <div className="flex justify-between items-center mb-6 text-lg">
-            <span className="text-slate-600 font-bold">Total Amount</span>
-            <span className="font-black text-2xl text-slate-900">${Number(cartTotal).toFixed(2)}</span>
-          </div>
-          
-          <div className="flex space-x-3">
-            <button 
-              onClick={clearCart}
-              disabled={cart.length === 0}
-              className="px-4 py-3 border-2 border-slate-200 text-slate-700 rounded-lg font-bold hover:bg-slate-50 disabled:opacity-50 transition-colors"
-            >
-              Clear
-            </button>
-            <button 
-              onClick={handleCheckout}
-              disabled={cart.length === 0 || checkoutStatus === 'processing'}
-              className="flex-1 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-bold py-3 shadow-lg shadow-slate-200 disabled:opacity-50 transition-all flex justify-center items-center"
-            >
-              {checkoutStatus === 'processing' ? 'Processing...' : checkoutStatus === 'success' ? <><CheckCircle className="w-5 h-5 mr-2"/> Complete</> : 'Complete Sale'}
-            </button>
+          <div className="p-6 bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] pb-8 sm:pb-6">
+            <div className="flex justify-between items-center mb-6 text-lg">
+              <span className="text-slate-600 font-bold">Total Amount</span>
+              <span className="font-black text-2xl text-slate-900">${Number(cartTotal).toFixed(2)}</span>
+            </div>
+            
+            <div className="flex space-x-3">
+              <button 
+                onClick={clearCart}
+                disabled={cart.length === 0}
+                className="px-4 py-3 border-2 border-slate-200 text-slate-700 rounded-lg font-bold hover:bg-slate-50 disabled:opacity-50 transition-colors"
+              >
+                Clear
+              </button>
+              <button 
+                onClick={handleCheckout}
+                disabled={cart.length === 0 || checkoutStatus === 'processing'}
+                className="flex-1 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-bold py-3 shadow-lg shadow-slate-200 disabled:opacity-50 transition-all flex justify-center items-center"
+              >
+                {checkoutStatus === 'processing' ? 'Processing...' : checkoutStatus === 'success' ? <><CheckCircle className="w-5 h-5 mr-2"/> Complete</> : 'Complete Sale'}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    </>
-  );
+      </>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
       <Navigation />
       
-      <div className="fixed bottom-6 right-6 z-[60] pointer-events-auto">
+      <div className="fixed bottom-6 right-4 sm:right-6 z-[45] pointer-events-auto">
         <button 
           onClick={() => setIsCartOpen(true)}
           className="p-4 bg-slate-900 text-white rounded-full shadow-[0_10px_25px_-5px_rgba(0,0,0,0.3)] animate-bounce hover:animate-none transition-all hover:scale-110 active:scale-95 border-2 border-white"
@@ -351,9 +410,12 @@ export default function POSSystem() {
         </button>
       </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 sm:pb-8">
         {activeTab === 'sell' && (
-           isLoading ? <div>Loading...</div> : (
+           isLoading ? 
+           <div className="flex justify-center items-center h-64">
+             <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+           </div> : (
              <>
                {/* Search & Sort UI Controls */}
                <div className="flex flex-col sm:flex-row gap-4 mb-6 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
@@ -383,7 +445,7 @@ export default function POSSystem() {
                  </div>
                </div>
 
-               {/* Product Grid with filtering and sorting applied */}
+               {/* Product Grid */}
                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                  {products
                    .filter(p => searchId === '' || p.id.toString().includes(searchId))
@@ -402,13 +464,13 @@ export default function POSSystem() {
            )
         )}
 
-        {/* Status Modal - Professional Overlay */}
+        {/* Status Modal */}
         {checkoutStatus && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
             <div className="bg-white rounded-2xl p-8 w-full max-w-sm text-center shadow-2xl transform transition-all">
               {checkoutStatus === 'processing' ? (
-                <div className="animate-spin text-slate-900 mx-auto mb-4">
-                  <Loader2 className="w-16 h-16" />
+                <div className="animate-spin text-slate-900 mx-auto mb-4 w-16 h-16 flex justify-center items-center">
+                  <Loader2 className="w-12 h-12" />
                 </div>
               ) : (
                 <div className="text-green-500 mb-4">
