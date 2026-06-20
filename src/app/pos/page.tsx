@@ -20,7 +20,7 @@ interface Product {
   warehouseStock: number;
   image: string;
   createdAt?: string;
-  alertThreshold?: number; // Added for the new alert feature
+  alertThreshold?: number;
 }
 
 interface CartItem {
@@ -198,7 +198,7 @@ export default function POSSystem() {
               { id: 'sell', name: 'Sell', icon: Store },
               { id: 'stock', name: 'Shop', icon: Layers },
               { id: 'warehouse', name: 'Warehouse', icon: Warehouse },
-              { id: 'price-alerts', name: 'Price & Alerts', icon: Tag }, // New Tab
+              { id: 'price-alerts', name: 'Price & Alerts', icon: Tag },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -313,23 +313,58 @@ export default function POSSystem() {
   const PriceAlertsView = () => {
     const [priceInputs, setPriceInputs] = useState<Record<number, string>>({});
     const [alertInputs, setAlertInputs] = useState<Record<number, string>>({});
+    const [isUpdating, setIsUpdating] = useState<number | null>(null);
 
     const handleUpdatePrice = async (id: number) => {
       const newPrice = Number(priceInputs[id]);
       if (isNaN(newPrice) || newPrice <= 0) return;
       
-      // Update local state (in a real app, you would make an API call here)
-      setProducts(prev => prev.map(p => p.id === id ? { ...p, defaultPrice: newPrice } : p));
-      setPriceInputs(prev => ({ ...prev, [id]: '' }));
+      setIsUpdating(id);
+      try {
+        const response = await fetch('/api/products', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, defaultPrice: newPrice })
+        });
+
+        if (response.ok) {
+          setProducts(prev => prev.map(p => p.id === id ? { ...p, defaultPrice: newPrice } : p));
+          setPriceInputs(prev => ({ ...prev, [id]: '' }));
+        } else {
+          alert("Failed to update price. Please try again.");
+        }
+      } catch (error) {
+        console.error("Error updating price:", error);
+        alert("An error occurred while updating the price.");
+      } finally {
+        setIsUpdating(null);
+      }
     };
 
     const handleUpdateAlert = async (id: number) => {
       const newAlert = Number(alertInputs[id]);
       if (isNaN(newAlert) || newAlert < 0) return;
       
-      // Update local state (in a real app, you would make an API call here)
-      setProducts(prev => prev.map(p => p.id === id ? { ...p, alertThreshold: newAlert } : p));
-      setAlertInputs(prev => ({ ...prev, [id]: '' }));
+      setIsUpdating(id);
+      try {
+        const response = await fetch('/api/products', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, alertThreshold: newAlert })
+        });
+
+        if (response.ok) {
+          setProducts(prev => prev.map(p => p.id === id ? { ...p, alertThreshold: newAlert } : p));
+          setAlertInputs(prev => ({ ...prev, [id]: '' }));
+        } else {
+          alert("Failed to update alert threshold. Please try again.");
+        }
+      } catch (error) {
+        console.error("Error updating alert:", error);
+        alert("An error occurred while updating the alert threshold.");
+      } finally {
+        setIsUpdating(null);
+      }
     };
 
     // Calculate low stock items (Shop + Warehouse combined)
@@ -354,7 +389,7 @@ export default function POSSystem() {
             
             <div className="max-h-[400px] overflow-y-auto no-scrollbar border border-slate-100 rounded-xl">
               <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50 sticky top-0 border-b border-slate-100 text-slate-600">
+                <thead className="bg-slate-50 sticky top-0 border-b border-slate-100 text-slate-600 z-10">
                   <tr>
                     <th className="p-3 font-semibold">Item</th>
                     <th className="p-3 font-semibold">Current Price</th>
@@ -379,10 +414,10 @@ export default function POSSystem() {
                           />
                           <button 
                             onClick={() => handleUpdatePrice(p.id)}
-                            disabled={!priceInputs[p.id]}
-                            className="bg-slate-900 text-white px-3 py-1.5 rounded-r-lg hover:bg-slate-800 disabled:bg-slate-300 transition-colors"
+                            disabled={!priceInputs[p.id] || isUpdating === p.id}
+                            className="bg-slate-900 text-white px-3 py-1.5 rounded-r-lg hover:bg-slate-800 disabled:bg-slate-300 transition-colors flex items-center justify-center"
                           >
-                            <Save className="w-4 h-4" />
+                            {isUpdating === p.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                           </button>
                         </div>
                       </td>
@@ -402,7 +437,7 @@ export default function POSSystem() {
             
             <div className="max-h-[400px] overflow-y-auto no-scrollbar border border-slate-100 rounded-xl">
               <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50 sticky top-0 border-b border-slate-100 text-slate-600">
+                <thead className="bg-slate-50 sticky top-0 border-b border-slate-100 text-slate-600 z-10">
                   <tr>
                     <th className="p-3 font-semibold">Item</th>
                     <th className="p-3 font-semibold">Current Alert</th>
@@ -427,10 +462,10 @@ export default function POSSystem() {
                           />
                           <button 
                             onClick={() => handleUpdateAlert(p.id)}
-                            disabled={!alertInputs[p.id]}
-                            className="bg-slate-900 text-white px-3 py-1.5 rounded-r-lg hover:bg-slate-800 disabled:bg-slate-300 transition-colors"
+                            disabled={!alertInputs[p.id] || isUpdating === p.id}
+                            className="bg-slate-900 text-white px-3 py-1.5 rounded-r-lg hover:bg-slate-800 disabled:bg-slate-300 transition-colors flex items-center justify-center"
                           >
-                            <Save className="w-4 h-4" />
+                            {isUpdating === p.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                           </button>
                         </div>
                       </td>
@@ -486,7 +521,7 @@ export default function POSSystem() {
                       <div className="w-12 bg-red-200 h-2 rounded-full overflow-hidden flex self-center ml-2">
                         <div 
                           className="bg-red-500 h-full rounded-full" 
-                          style={{ width: `${percentage}%` }}
+                          style={{ width: `${Math.min(percentage, 100)}%` }}
                         ></div>
                       </div>
                     </div>
