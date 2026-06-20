@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
-import prisma from '../../../../../lib/prisma';
+import prisma from '../../../../../lib/prisma'; 
+
 export async function GET() {
   try {
     const products = await prisma.product.findMany({
       orderBy: {
-        id: 'asc', // Keeps the UI consistent on refresh
+        id: 'asc', 
       },
     });
 
