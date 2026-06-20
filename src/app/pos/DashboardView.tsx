@@ -9,13 +9,11 @@ import SalesReport from './dashboard/SalesReport';
 import TransactionList from './dashboard/TransactionList';
 
 // --- TYPES & INTERFACES ---
-// FIX 1: Renamed 'Sale' to 'Transaction' to avoid Prisma namespace collision
-// FIX 2: Added 'cashierName' to match what TransactionList.tsx expects
+// Renamed from 'Sale' to 'Transaction' to fix the Prisma namespace collision
 export interface Transaction {
   id: number;
   createdAt: string | Date;
-  cashier?: { name: string }; // What the API might return
-  cashierName: string;        // The mapped value TransactionList requires
+  cashierName: string; // The flat string expected by TransactionList
   total: number;
   profit: number;
   items: any[]; 
@@ -33,7 +31,7 @@ export default function DashboardView() {
   const [subTab, setSubTab] = useState<'overview' | 'users' | 'transactions'>('overview');
   const [period, setPeriod] = useState<'daily' | 'monthly' | 'yearly'>('daily');
   
-  // FIX 3: Update state to use the new Transaction interface
+  // Use the new Transaction interface here
   const [sales, setSales] = useState<Transaction[]>([]);
   const [alerts, setAlerts] = useState<StockAlert[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,9 +58,8 @@ export default function DashboardView() {
         const salesData = await salesRes.json();
         const alertsData = await alertsRes.json();
         
-        // FIX 4: Map the incoming database array to ensure 'cashierName' exists 
-        // before passing it into state and down to the TransactionList component
-        const formattedSales = (salesData.recentSales || []).map((sale: any) => ({
+        // Map the database data to format the cashier name properly for the UI
+        const formattedSales: Transaction[] = (salesData.recentSales || []).map((sale: any) => ({
           ...sale,
           cashierName: sale.cashier?.name || sale.cashierName || 'Unknown'
         }));
@@ -72,7 +69,7 @@ export default function DashboardView() {
       } catch (error) {
         console.error("Failed to fetch dashboard data:", error);
       } finally {
-        loading && setLoading(false);
+        if (loading) setLoading(false);
       }
     }
     fetchData();
@@ -121,7 +118,6 @@ export default function DashboardView() {
       const query = searchQuery.toLowerCase();
       output = output.filter(sale => 
         sale.id.toString().includes(query) || 
-        // FIX 5: Use the new cashierName property for searching
         sale.cashierName.toLowerCase().includes(query)
       );
     }
