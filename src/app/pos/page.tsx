@@ -6,7 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   ShoppingCart, LogOut, Home, Store, Layers, Warehouse, 
-  X, Trash2, CheckCircle, Loader2
+  X, Trash2, CheckCircle, Loader2, Tag, AlertTriangle, Save
 } from 'lucide-react';
 
 // --- TYPES ---
@@ -20,6 +20,7 @@ interface Product {
   warehouseStock: number;
   image: string;
   createdAt?: string;
+  alertThreshold?: number; // Added for the new alert feature
 }
 
 interface CartItem {
@@ -76,7 +77,12 @@ export default function POSSystem() {
         const response = await fetch('/api/products');
         if (response.ok) {
           const data = await response.json();
-          setProducts(data);
+          // Initialize mock alert thresholds if not provided by backend
+          const enhancedData = data.map((p: Product) => ({
+            ...p,
+            alertThreshold: p.alertThreshold || 5 // Default low-stock alert is 5
+          }));
+          setProducts(enhancedData);
         } else {
           setProducts(mockProducts);
         }
@@ -134,11 +140,8 @@ export default function POSSystem() {
   const handleCheckout = async () => {
     if (cart.length === 0) return;
     
-    // --- IMPROVED AUTH CHECK ---
-    // 1. Try React State first
     let userName = currentUser?.name;
 
-    // 2. Failsafe: If state is null, check localStorage directly
     if (!userName) {
         const raw = localStorage.getItem('luxury_user');
         if (raw) {
@@ -147,7 +150,6 @@ export default function POSSystem() {
         }
     }
 
-    // 3. Validation
     if (!userName || userName.trim() === '') {
       console.error("Checkout failed: No valid user logged in.");
       alert("Session error: Please refresh the page and try logging in again.");
@@ -196,6 +198,7 @@ export default function POSSystem() {
               { id: 'sell', name: 'Sell', icon: Store },
               { id: 'stock', name: 'Shop', icon: Layers },
               { id: 'warehouse', name: 'Warehouse', icon: Warehouse },
+              { id: 'price-alerts', name: 'Price & Alerts', icon: Tag }, // New Tab
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -306,6 +309,198 @@ export default function POSSystem() {
     );
   };
 
+  // --- NEW: PRICE & ALERTS COMPONENT ---
+  const PriceAlertsView = () => {
+    const [priceInputs, setPriceInputs] = useState<Record<number, string>>({});
+    const [alertInputs, setAlertInputs] = useState<Record<number, string>>({});
+
+    const handleUpdatePrice = async (id: number) => {
+      const newPrice = Number(priceInputs[id]);
+      if (isNaN(newPrice) || newPrice <= 0) return;
+      
+      // Update local state (in a real app, you would make an API call here)
+      setProducts(prev => prev.map(p => p.id === id ? { ...p, defaultPrice: newPrice } : p));
+      setPriceInputs(prev => ({ ...prev, [id]: '' }));
+    };
+
+    const handleUpdateAlert = async (id: number) => {
+      const newAlert = Number(alertInputs[id]);
+      if (isNaN(newAlert) || newAlert < 0) return;
+      
+      // Update local state (in a real app, you would make an API call here)
+      setProducts(prev => prev.map(p => p.id === id ? { ...p, alertThreshold: newAlert } : p));
+      setAlertInputs(prev => ({ ...prev, [id]: '' }));
+    };
+
+    // Calculate low stock items (Shop + Warehouse combined)
+    const lowStockItems = products.filter(p => {
+      const threshold = p.alertThreshold !== undefined ? p.alertThreshold : 5;
+      const totalStock = p.shopStock + p.warehouseStock;
+      return totalStock <= threshold;
+    });
+
+    return (
+      <div className="space-y-8 animate-in fade-in duration-300">
+        
+        {/* TOP ROW: Two Grid Columns for Settings */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          
+          {/* SECTION 1: PRICE MANAGEMENT */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+            <div className="flex items-center mb-6 text-slate-900">
+              <Tag className="w-6 h-6 mr-2" />
+              <h2 className="text-xl font-bold">Update Prices</h2>
+            </div>
+            
+            <div className="max-h-[400px] overflow-y-auto no-scrollbar border border-slate-100 rounded-xl">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50 sticky top-0 border-b border-slate-100 text-slate-600">
+                  <tr>
+                    <th className="p-3 font-semibold">Item</th>
+                    <th className="p-3 font-semibold">Current Price</th>
+                    <th className="p-3 font-semibold text-right">New Price</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {products.map(p => (
+                    <tr key={p.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="p-3 font-medium text-slate-900">
+                        {p.name} <span className="text-slate-400 text-xs ml-1">#{p.id}</span>
+                      </td>
+                      <td className="p-3 text-slate-600">${p.defaultPrice.toFixed(2)}</td>
+                      <td className="p-3 flex justify-end">
+                        <div className="flex w-32">
+                          <input 
+                            type="number" 
+                            placeholder="0.00"
+                            value={priceInputs[p.id] || ''}
+                            onChange={(e) => setPriceInputs({ ...priceInputs, [p.id]: e.target.value })}
+                            className="w-full border border-slate-300 rounded-l-lg px-2 py-1.5 focus:outline-none focus:border-slate-800 focus:ring-1 focus:ring-slate-800"
+                          />
+                          <button 
+                            onClick={() => handleUpdatePrice(p.id)}
+                            disabled={!priceInputs[p.id]}
+                            className="bg-slate-900 text-white px-3 py-1.5 rounded-r-lg hover:bg-slate-800 disabled:bg-slate-300 transition-colors"
+                          >
+                            <Save className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* SECTION 2: ALERT MANAGEMENT */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+            <div className="flex items-center mb-6 text-slate-900">
+              <AlertTriangle className="w-6 h-6 mr-2" />
+              <h2 className="text-xl font-bold">Set Low Stock Alerts</h2>
+            </div>
+            
+            <div className="max-h-[400px] overflow-y-auto no-scrollbar border border-slate-100 rounded-xl">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50 sticky top-0 border-b border-slate-100 text-slate-600">
+                  <tr>
+                    <th className="p-3 font-semibold">Item</th>
+                    <th className="p-3 font-semibold">Current Alert</th>
+                    <th className="p-3 font-semibold text-right">New Alert Qty</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {products.map(p => (
+                    <tr key={p.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="p-3 font-medium text-slate-900">
+                        {p.name} <span className="text-slate-400 text-xs ml-1">#{p.id}</span>
+                      </td>
+                      <td className="p-3 text-slate-600">{p.alertThreshold || 5} units</td>
+                      <td className="p-3 flex justify-end">
+                        <div className="flex w-32">
+                          <input 
+                            type="number" 
+                            placeholder="Qty"
+                            value={alertInputs[p.id] || ''}
+                            onChange={(e) => setAlertInputs({ ...alertInputs, [p.id]: e.target.value })}
+                            className="w-full border border-slate-300 rounded-l-lg px-2 py-1.5 focus:outline-none focus:border-slate-800 focus:ring-1 focus:ring-slate-800"
+                          />
+                          <button 
+                            onClick={() => handleUpdateAlert(p.id)}
+                            disabled={!alertInputs[p.id]}
+                            className="bg-slate-900 text-white px-3 py-1.5 rounded-r-lg hover:bg-slate-800 disabled:bg-slate-300 transition-colors"
+                          >
+                            <Save className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+        {/* SECTION 3: LOW STOCK DISPLAY */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-red-100">
+          <div className="flex items-center mb-6 text-red-600">
+            <AlertTriangle className="w-6 h-6 mr-2 animate-pulse" />
+            <h2 className="text-xl font-bold">Low Stock Dashboard</h2>
+            <span className="ml-4 bg-red-100 text-red-700 text-xs font-bold px-3 py-1 rounded-full">
+              {lowStockItems.length} items need attention
+            </span>
+          </div>
+
+          {lowStockItems.length === 0 ? (
+            <div className="text-center py-8 text-slate-500">
+              <CheckCircle className="w-12 h-12 mx-auto mb-3 text-green-400 opacity-50" />
+              <p className="font-medium">All items are sufficiently stocked.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {lowStockItems.map(item => {
+                const total = item.shopStock + item.warehouseStock;
+                const threshold = item.alertThreshold || 5;
+                const percentage = Math.max(0, (total / threshold) * 100);
+                
+                return (
+                  <div key={item.id} className="bg-red-50 p-4 rounded-xl border border-red-100 flex flex-col">
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-bold text-slate-900">{item.name}</h4>
+                      <span className="text-xs font-mono bg-white text-slate-500 px-2 py-1 rounded shadow-sm border border-slate-100">
+                        #{item.id}
+                      </span>
+                    </div>
+                    
+                    <div className="mt-auto pt-4 flex justify-between items-end">
+                      <div>
+                        <div className="text-sm font-semibold text-red-600">
+                          {total} Left (Alert at {threshold})
+                        </div>
+                        <div className="text-xs text-slate-500 mt-1">
+                          Shop: {item.shopStock} | Warehouse: {item.warehouseStock}
+                        </div>
+                      </div>
+                      <div className="w-12 bg-red-200 h-2 rounded-full overflow-hidden flex self-center ml-2">
+                        <div 
+                          className="bg-red-500 h-full rounded-full" 
+                          style={{ width: `${percentage}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+      </div>
+    );
+  };
+
   const CartModal = () => {
     if (!isCartOpen) return null;
 
@@ -410,6 +605,8 @@ export default function POSSystem() {
       </div>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 sm:pb-8">
+        
+        {/* --- SELL TAB --- */}
         {activeTab === 'sell' && (
            isLoading ? 
            <div className="flex justify-center items-center h-64">
@@ -483,9 +680,12 @@ export default function POSSystem() {
           </div>
         )}
 
+        {/* --- TABS RENDERING --- */}
         {activeTab === 'dashboard' && <DashboardView />}
         {activeTab === 'stock' && <StockView />}
         {activeTab === 'warehouse' && <WarehouseView />}
+        {activeTab === 'price-alerts' && <PriceAlertsView />}
+        
       </main>
       
       <CartModal />
