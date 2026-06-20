@@ -9,10 +9,13 @@ import SalesReport from './dashboard/SalesReport';
 import TransactionList from './dashboard/TransactionList';
 
 // --- TYPES & INTERFACES ---
-interface Sale {
+// FIX 1: Renamed 'Sale' to 'Transaction' to avoid Prisma namespace collision
+// FIX 2: Added 'cashierName' to match what TransactionList.tsx expects
+export interface Transaction {
   id: number;
   createdAt: string | Date;
-  cashier: { name: string };
+  cashier?: { name: string }; // What the API might return
+  cashierName: string;        // The mapped value TransactionList requires
   total: number;
   profit: number;
   items: any[]; 
@@ -29,7 +32,9 @@ export default function DashboardView() {
   // --- STATES ---
   const [subTab, setSubTab] = useState<'overview' | 'users' | 'transactions'>('overview');
   const [period, setPeriod] = useState<'daily' | 'monthly' | 'yearly'>('daily');
-  const [sales, setSales] = useState<Sale[]>([]);
+  
+  // FIX 3: Update state to use the new Transaction interface
+  const [sales, setSales] = useState<Transaction[]>([]);
   const [alerts, setAlerts] = useState<StockAlert[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -55,7 +60,14 @@ export default function DashboardView() {
         const salesData = await salesRes.json();
         const alertsData = await alertsRes.json();
         
-        setSales(salesData.recentSales || []);
+        // FIX 4: Map the incoming database array to ensure 'cashierName' exists 
+        // before passing it into state and down to the TransactionList component
+        const formattedSales = (salesData.recentSales || []).map((sale: any) => ({
+          ...sale,
+          cashierName: sale.cashier?.name || sale.cashierName || 'Unknown'
+        }));
+
+        setSales(formattedSales);
         setAlerts(alertsData || []);
       } catch (error) {
         console.error("Failed to fetch dashboard data:", error);
@@ -109,7 +121,8 @@ export default function DashboardView() {
       const query = searchQuery.toLowerCase();
       output = output.filter(sale => 
         sale.id.toString().includes(query) || 
-        sale.cashier?.name?.toLowerCase().includes(query)
+        // FIX 5: Use the new cashierName property for searching
+        sale.cashierName.toLowerCase().includes(query)
       );
     }
 
