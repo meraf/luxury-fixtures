@@ -1,29 +1,31 @@
 'use client';
 import { useState } from 'react';
 
-// Interfaces matching your Prisma schema
-interface Product {
+// Renamed from 'Product' to avoid Prisma conflict
+export interface TransactionProduct {
   name: string;
 }
 
-interface SaleItem {
+// Renamed from 'SaleItem' to avoid Prisma conflict
+export interface TransactionItem {
   id: number;
-  product: Product;
+  product: TransactionProduct;
   quantity: number;
   price: number;
 }
 
-interface Sale {
+// Renamed from 'Sale' to avoid Prisma conflict
+export interface Transaction {
   id: number;
   createdAt: string | Date;
-  cashierName: string; // FIX 1: Updated TypeScript definition to match the new backend payload
+  cashierName: string;
   total: number;
   profit: number;
-  items: SaleItem[];
+  items: TransactionItem[];
 }
 
-export default function TransactionList({ sales }: { sales: Sale[] }) {
-  const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
+export default function TransactionList({ sales }: { sales: Transaction[] }) {
+  const [selectedSale, setSelectedSale] = useState<Transaction | null>(null);
 
   return (
     <div className="bg-white rounded-xl shadow p-6">
@@ -38,7 +40,7 @@ export default function TransactionList({ sales }: { sales: Sale[] }) {
           </tr>
         </thead>
         <tbody>
-          {sales.map((sale: Sale) => (
+          {sales.map((sale: Transaction) => (
             <tr 
               key={sale.id} 
               onClick={() => setSelectedSale(sale)}
@@ -60,13 +62,12 @@ export default function TransactionList({ sales }: { sales: Sale[] }) {
             <h3 className="text-xl font-bold mb-4">Sale Details</h3>
             
             <div className="text-sm text-slate-600 mb-4">
-              {/* FIX 2: Read directly from cashierName string instead of cashier.name */}
               <p><strong>Sold by:</strong> {selectedSale.cashierName || 'Unknown'}</p>
               <p><strong>Date:</strong> {new Date(selectedSale.createdAt).toLocaleString()}</p>
             </div>
             
             <div className="space-y-2 mb-6 border-t pt-4">
-              {selectedSale.items.map((item: SaleItem) => (
+              {selectedSale.items.map((item: TransactionItem) => (
                 <div key={item.id} className="flex justify-between">
                   <span>{item.product.name} (x{item.quantity})</span>
                   <span>${(Number(item.price) * item.quantity).toFixed(2)}</span>
